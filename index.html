@@ -3,40 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Debug</title>
+    <title>Atelier Wil - Précision</title>
     <style>
-        :root { --accent: #d4af37; --dark: #0a0a0a; }
-        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; }
+        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; }
+        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; overflow: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .btn-start { 
-            padding: 30px 60px; 
-            background: var(--accent); 
-            color: black; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: bold; 
-            font-size: 24px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            touch-action: manipulation;
-        }
-        #ui { display: none; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
-        .valeur { font-size: 100px; color: var(--accent); font-weight: bold; }
-        .mesure-nom { font-size: 24px; margin-bottom: 20px; }
+        .mesure-nom { font-size: 28px; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; height: 40px; }
+        .valeur { font-size: 120px; font-weight: bold; margin: 20px 0; min-height: 140px; }
+        .status-pill { padding: 8px 20px; border-radius: 20px; font-size: 14px; letter-spacing: 2px; background: #222; color: #666; }
+        .listening { background: var(--green); color: black; box-shadow: 0 0 15px var(--green); }
+        .btn-start { padding: 25px 50px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="start-screen" class="container">
-    <h1 style="color:var(--accent)">TEST DIAGNOSTIC</h1>
-    <p id="debug-info" style="font-size: 12px; color: #666;">En attente de clic...</p>
-    <button class="btn-start" id="mainButton">DÉMARRER</button>
+    <h1 style="color:var(--accent); letter-spacing:5px;">ATELIER WIL</h1>
+    <button class="btn-start" onclick="demarrer()">DÉMARRER L'ASSISTANT</button>
 </div>
 
-<div id="ui">
-    <div id="progress">1 / 31</div>
-    <div id="label" class="mesure-nom">Chargement...</div>
+<div id="ui" class="container" style="display:none;">
+    <div id="progress" style="font-size: 16px; opacity: 0.5; margin-bottom: 20px;">1 / 31</div>
+    <div id="label" class="mesure-nom">Prêt</div>
     <div id="display" class="valeur">--</div>
-    <div id="status">ÉCOUTE...</div>
+    <div id="status" class="status-pill">CHARGEMENT</div>
 </div>
 
 <script>
@@ -46,90 +36,95 @@
     let attendConfirm = false;
     let tempVal = "";
 
-    // On attache l'événement proprement pour Android
-    document.getElementById('mainButton').addEventListener('click', function() {
-        demarrer();
-    });
-
-    function parler(t, cb) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(t);
+    function parler(texte, callback) {
+        // On arrête l'écoute avant de parler pour éviter l'écho
+        if (recognition) recognition.stop();
+        
+        const u = new SpeechSynthesisUtterance(texte);
         u.lang = 'fr-FR';
-        if (cb) u.onend = cb;
+        u.rate = 1.1;
+        
+        u.onend = () => {
+            // On relance l'écoute seulement quand elle a fini de parler
+            if (recognition) recognition.start();
+            if (callback) callback();
+        };
         window.speechSynthesis.speak(u);
     }
 
     function demarrer() {
-        document.getElementById('debug-info').innerText = "Initialisation...";
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('ui').style.display = 'flex';
         
-        try {
-            // 1. Test de la voix
-            parler(""); 
+        const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new Speech();
+        recognition.lang = 'fr-FR';
+        recognition.continuous = false; // Plus stable pour les réponses courtes
+        recognition.interimResults = false;
 
-            // 2. Test du Micro
-            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Speech) {
-                throw new Error("Reconnaissance vocale non supportée sur ce navigateur.");
+        recognition.onstart = () => {
+            document.getElementById('status').innerText = "À VOUS...";
+            document.getElementById('status').classList.add('listening');
+        };
+
+        recognition.onend = () => {
+            document.getElementById('status').innerText = "PAUSE";
+            document.getElementById('status').classList.remove('listening');
+        };
+
+        recognition.onresult = (e) => {
+            const result = e.results[0][0].transcript.toLowerCase();
+            console.log("Reçu:", result);
+
+            if (attendConfirm) {
+                if (result.includes("oui") || result.includes("ok") || result.includes("valide")) {
+                    valider(true);
+                } else if (result.includes("non") || result.includes("erreur")) {
+                    valider(false);
+                } else {
+                    // Si elle n'a pas compris oui/non, elle redemande
+                    parler(tempVal + ". Valider ?");
+                }
+            } else {
+                let num = result.replace(/[^0-9,.]/g, '').replace(',', '.');
+                const match = num.match(/\d+(\.\d+)?/);
+                if (match) {
+                    tempVal = match[0];
+                    attendConfirm = true;
+                    document.getElementById('display').innerText = tempVal.replace('.', ',');
+                    parler(tempVal.replace('.', ',') + ". Valider ?");
+                } else {
+                    // Si pas de chiffre entendu, on relance l'écoute
+                    recognition.start();
+                }
             }
+        };
 
-            recognition = new Speech();
-            recognition.lang = 'fr-FR';
-            recognition.continuous = true;
-
-            recognition.onstart = () => {
-                document.getElementById('start-screen').style.display = 'none';
-                document.getElementById('ui').style.display = 'flex';
-                annoncer();
-            };
-
-            recognition.onerror = (e) => {
-                alert("Erreur micro : " + e.error);
-                if(e.error === 'not-allowed') alert("Allez dans les paramètres de la tablette > Applications > Chrome > Autorisations > Micro.");
-            };
-
-            recognition.onresult = gererResultat;
-            
-            // Lancement
-            recognition.start();
-
-        } catch (err) {
-            alert("ERREUR CRITIQUE : " + err.message);
-            document.getElementById('debug-info').innerText = err.message;
-        }
-    }
-
-    function gererResultat(e) {
-        const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
-        if (attendConfirm) {
-            if (text.includes("oui") || text.includes("ok")) valider(true);
-            else if (text.includes("non")) valider(false);
-        } else {
-            let num = text.replace(/[^0-9,.]/g, '').replace(',', '.');
-            const match = num.match(/\d+(\.\d+)?/);
-            if (match) {
-                tempVal = match[0];
-                attendConfirm = true;
-                document.getElementById('display').innerText = tempVal.replace('.', ',');
-                parler(tempVal.replace('.', ',') + ". Valider ?");
-            }
-        }
+        annoncer();
     }
 
     function annoncer() {
         attendConfirm = false;
         document.getElementById('label').innerText = mesures[idx];
         document.getElementById('display').innerText = "--";
-        document.getElementById('progress').innerText = `${idx + 1} / 31`;
+        document.getElementById('display').style.color = "white";
+        document.getElementById('progress').innerText = `${idx + 1} / ${mesures.length}`;
         parler(mesures[idx]);
     }
 
     function valider(ok) {
         if (ok) {
+            document.getElementById('display').style.color = "#2ecc71";
             idx++;
-            if (idx < mesures.length) annoncer();
-            else alert("Terminé !");
+            if (idx < mesures.length) {
+                setTimeout(annoncer, 400);
+            } else {
+                document.getElementById('label').innerText = "FIN";
+                parler("Mesures terminées.");
+            }
         } else {
-            annoncer();
+            document.getElementById('display').style.color = "#ff4444";
+            setTimeout(annoncer, 400);
         }
     }
 </script>
