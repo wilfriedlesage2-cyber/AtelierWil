@@ -3,50 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Expert</title>
+    <title>Atelier Wil - Application Officielle</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; --red: #ff4444; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; overflow-x: hidden; }
         .step { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; }
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
-        /* Formulaires */
-        input, textarea { width: 80%; max-width: 400px; padding: 15px; margin: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 16px; }
-        .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 20px; }
+        input, textarea { width: 90%; max-width: 400px; padding: 15px; margin: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 16px; }
+        .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        .btn:active { transform: scale(0.95); opacity: 0.8; }
         
-        /* Mesures */
-        .valeur { font-size: 100px; font-weight: bold; color: var(--accent); margin: 20px 0; }
-        .status-pill { padding: 10px 20px; border-radius: 20px; background: #222; font-size: 14px; }
-        .listening { background: var(--green); color: black; }
+        .valeur { font-size: 100px; font-weight: bold; color: var(--accent); margin: 10px 0; }
+        .status-pill { padding: 10px 20px; border-radius: 20px; background: #222; font-size: 14px; margin-top: 10px; }
+        .listening { background: var(--green); color: black; box-shadow: 0 0 15px var(--green); }
 
-        /* Photo & Lignes */
-        #photo-container { position: relative; width: 320px; height: 480px; background: #000; overflow: hidden; border: 2px solid #333; }
+        #photo-container { position: relative; width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); margin: 15px 0; touch-action: none; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .guide-line { position: absolute; left: 0; width: 100%; height: 2px; background: rgba(212, 175, 55, 0.7); cursor: ns-resize; touch-action: none; }
+        canvas { display: none; }
+        .guide-line { position: absolute; left: 0; width: 100%; height: 2px; background: var(--accent); cursor: ns-resize; touch-action: none; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        .guide-line::after { content: "↔"; position: absolute; right: 5px; top: -10px; color: var(--accent); font-weight: bold; }
     </style>
 </head>
 <body>
 
     <section id="step1" class="step active">
-        <h1 style="color:var(--accent)">CLIENT</h1>
-        <input type="text" id="client-nom" placeholder="Nom du client">
+        <h1 style="color:var(--accent); letter-spacing: 3px;">ATELIER WIL</h1>
+        <p>Identification du client</p>
         <input type="text" id="client-prenom" placeholder="Prénom">
-        <button class="btn" onclick="nextStep(2)">COMMENCER LES MESURES</button>
+        <input type="text" id="client-nom" placeholder="Nom">
+        <input type="tel" id="client-tel" placeholder="Numéro de téléphone">
+        <button class="btn" onclick="validerEtape1()">LANCER LES MESURES</button>
     </section>
 
     <section id="step2" class="step">
-        <div id="progress" style="opacity:0.5">1 / 31</div>
-        <h2 id="label" style="color:var(--accent)">Prêt</h2>
+        <div id="progress" style="opacity:0.5; font-size: 14px;">1 / 31</div>
+        <h2 id="label" style="height: 60px; display: flex; align-items: center; color: var(--accent);">Prêt</h2>
         <div id="display" class="valeur">--</div>
-        <div id="status" class="status-pill">INITIALISATION</div>
+        <div id="status" class="status-pill">MICRO DÉSACTIVÉ</div>
         <button id="btn-vocal" class="btn" onclick="initVocal()">ACTIVER LE MICRO</button>
     </section>
 
     <section id="step3" class="step">
         <h2 style="color:var(--accent)">OBSERVATIONS</h2>
-        <p>Remarques particulières sur la morphologie :</p>
-        <textarea id="client-notes" rows="8" placeholder="Ex: Épaule droite plus basse, cambrure marquée..."></textarea>
+        <p>Morphologie et remarques :</p>
+        <textarea id="client-notes" rows="6" placeholder="Ex: Cambrure, asymétrie épaules..."></textarea>
         <button class="btn" onclick="nextStep(4)">PASSER AUX PHOTOS</button>
     </section>
 
@@ -59,14 +61,15 @@
             <div class="guide-line" style="top: 60%" onpointermove="dragLine(event)"></div>
             <div class="guide-line" style="top: 80%" onpointermove="dragLine(event)"></div>
         </div>
-        <p style="font-size:12px">Glissez les lignes jaunes au doigt</p>
-        <button class="btn" onclick="capturePhoto()">PRENDRE LA PHOTO</button>
+        <button class="btn" onclick="capturePhoto()">CAPTURER LA VUE</button>
+        <canvas id="canvas"></canvas>
     </section>
 
     <section id="step5" class="step">
-        <h2 style="color:var(--accent)">DOSSIER PRÊT</h2>
-        <div id="resume"></div>
+        <h2 style="color:var(--accent)">DOSSIER COMPLET</h2>
+        <p>Toutes les données ont été compilées.</p>
         <button class="btn" onclick="genererPDF()">TÉLÉCHARGER LE PDF</button>
+        <button class="btn" style="background:#333; color:white; margin-top:10px;" onclick="location.reload()">NOUVEAU CLIENT</button>
     </section>
 
 <script>
@@ -76,9 +79,8 @@
     let recognition;
     let attendConfirm = false;
     let tempVal = "";
-    let photos = [];
-    let photoSteps = ["FACE", "PROFIL", "DOS"];
     let currentPhotoIdx = 0;
+    const photoSteps = ["FACE", "PROFIL", "DOS"];
 
     function nextStep(n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -86,21 +88,51 @@
         if(n === 4) startCamera();
     }
 
-    // --- LOGIQUE VOCALE ---
+    function validerEtape1() {
+        if (!document.getElementById('client-prenom').value || !document.getElementById('client-tel').value) {
+            alert("Prénom et Téléphone requis pour le nom du fichier.");
+            return;
+        }
+        nextStep(2);
+    }
+
+    // --- MOTEUR VOCAL ---
+    function parler(t, cb) {
+        if(recognition) try { recognition.stop(); } catch(e){}
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'fr-FR';
+        u.rate = 1.1;
+        u.onend = () => { 
+            if(recognition) try { recognition.start(); } catch(e){}
+            if(cb) cb();
+        };
+        window.speechSynthesis.speak(u);
+    }
+
     function initVocal() {
         document.getElementById('btn-vocal').style.display = 'none';
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new Speech();
         recognition.lang = 'fr-FR';
+        recognition.continuous = false;
+
+        recognition.onstart = () => {
+            document.getElementById('status').innerText = "À VOUS...";
+            document.getElementById('status').classList.add('listening');
+        };
+        recognition.onend = () => {
+            document.getElementById('status').innerText = "PAUSE";
+            document.getElementById('status').classList.remove('listening');
+        };
+
         recognition.onresult = (e) => {
             const result = e.results[0][0].transcript.toLowerCase();
             if (attendConfirm) {
-                if (result.includes("oui") || result.includes("ok")) {
+                if (result.includes("oui") || result.includes("ok") || result.includes("valide")) {
                     valeursMesures.push(tempVal);
                     currentIdx++;
-                    if (currentIdx < mesuresNoms.length) annoncer();
-                    else nextStep(3);
-                } else if (result.includes("non")) {
+                    if (currentIdx < mesuresNoms.length) annoncer(); else nextStep(3);
+                } else if (result.includes("non") || result.includes("pas")) {
                     annoncer();
                 }
             } else {
@@ -109,22 +141,14 @@
                 if (match) {
                     tempVal = match[0];
                     attendConfirm = true;
-                    document.getElementById('display').innerText = tempVal;
-                    parler(tempVal + ". Valider ?");
+                    document.getElementById('display').innerText = tempVal.replace('.', ',');
+                    parler(tempVal.replace('.', ',') + ". Valider ?");
                 } else {
-                    recognition.start();
+                    try { recognition.start(); } catch(e){}
                 }
             }
         };
         annoncer();
-    }
-
-    function parler(t) {
-        if(recognition) try { recognition.stop(); } catch(e){}
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = 'fr-FR';
-        u.onend = () => { if(recognition) try { recognition.start(); } catch(e){} };
-        window.speechSynthesis.speak(u);
     }
 
     function annoncer() {
@@ -135,25 +159,25 @@
         parler(mesuresNoms[currentIdx]);
     }
 
-    // --- LOGIQUE PHOTO ---
+    // --- PHOTO ---
     function dragLine(e) {
-        if(e.buttons !== 1) return;
+        if(e.buttons !== 1 && e.type !== 'pointermove') return;
         let rect = document.getElementById('photo-container').getBoundingClientRect();
         let y = ((e.clientY - rect.top) / rect.height) * 100;
-        e.target.style.top = y + "%";
+        if(y >= 0 && y <= 100) e.target.style.top = y + "%";
     }
 
     function startCamera() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => { document.getElementById('video').srcObject = stream; });
+        .then(stream => { document.getElementById('video').srcObject = stream; })
+        .catch(err => alert("Erreur caméra : " + err));
     }
 
     function capturePhoto() {
-        // Ici on simule la capture (dans une vraie app on dessine la vidéo + les lignes sur un canvas)
-        photos.push("Photo " + photoSteps[currentPhotoIdx]);
         currentPhotoIdx++;
         if(currentPhotoIdx < photoSteps.length) {
             document.getElementById('photo-title').innerText = "VUE DE " + photoSteps[currentPhotoIdx];
+            alert("Vue capturée ! Passez à la suivante.");
         } else {
             nextStep(5);
         }
@@ -163,23 +187,39 @@
     function genererPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        let nom = document.getElementById('client-nom').value;
-        let notes = document.getElementById('client-notes').value;
+        const prenom = document.getElementById('client-prenom').value;
+        const nom = document.getElementById('client-nom').value;
+        const tel = document.getElementById('client-tel').value.replace(/\s/g, '');
+        const notes = document.getElementById('client-notes').value;
+
+        doc.setFontSize(22);
+        doc.setTextColor(212, 175, 55);
+        doc.text("ATELIER WIL - FICHE TECHNIQUE", 20, 25);
         
-        doc.setFontSize(20);
-        doc.text("FICHE TECHNIQUE - ATELIER WIL", 20, 20);
         doc.setFontSize(12);
-        doc.text(`Client : ${nom}`, 20, 35);
-        doc.text(`Notes : ${notes}`, 20, 45);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Client : ${prenom} ${nom}`, 20, 40);
+        doc.text(`Tél : ${tel}`, 20, 47);
+        doc.text(`Date : ${new Date().toLocaleDateString()}`, 20, 54);
         
-        let y = 60;
+        doc.text("OBSERVATIONS :", 20, 65);
+        const splitNotes = doc.splitTextToSize(notes || "Aucune note.", 170);
+        doc.text(splitNotes, 20, 72);
+
+        let y = 100;
+        doc.setFontSize(14);
+        doc.text("MESURES (cm) :", 20, y);
+        y += 10;
+        doc.setFontSize(11);
+
         mesuresNoms.forEach((m, i) => {
-            doc.text(`${m} : ${valeursMesures[i] || '--'} cm`, 20, y);
-            y += 7;
-            if(y > 280) { doc.addPage(); y = 20; }
+            doc.text(`${m} :`, 20, y);
+            doc.text(`${valeursMesures[i] || '--'}`, 80, y);
+            y += 6.5;
+            if(y > 275) { doc.addPage(); y = 20; }
         });
-        
-        doc.save(`Atelier_Wil_${nom}.pdf`);
+
+        doc.save(`${prenom}_${tel}.pdf`);
     }
 </script>
 </body>
