@@ -41,10 +41,9 @@
         label { display: block; margin: 10px 0 5px; color: #888; font-size: 14px; text-transform: uppercase; }
         .camera-input { border: 2px dashed var(--accent); background: rgba(212, 175, 55, 0.05); color: var(--accent); padding: 30px; text-align: center; }
         
-        /* Vocal Styles */
         .vocal-status { padding: 10px; border-radius: 8px; font-size: 12px; text-align: center; margin-bottom: 10px; background: #222; border: 1px solid #444; }
         .listening { background: var(--green); color: black; font-weight: bold; }
-        .vocal-val { font-size: 40px; color: var(--accent); font-weight: bold; margin: 10px 0; }
+        .vocal-val { font-size: 40px; color: var(--accent); font-weight: bold; margin: 10px 0; text-align: center;}
     </style>
 </head>
 <body onload="loadSavedData()">
@@ -67,18 +66,16 @@
 
     <div id="p3" class="page" style="justify-content: center;">
         <h2>Préparation</h2>
-        <p style="color:#888; text-align: center;">Installation du client. Les mesures seront dictées une par une.</p>
+        <p style="color:#888; text-align: center;">Installation du client. Dictez les valeurs après le signal.</p>
         <button class="btn btn-gold" onclick="nav(4)">Démarrer les mesures</button>
         <button class="btn btn-outline" onclick="nav(2)">Retour</button>
     </div>
 
     <div id="p4" class="page">
-        <h2 id="m-label" style="min-height: 60px; color: var(--accent);">--</h2>
+        <h2 id="m-label" style="min-height: 60px; color: var(--accent); text-align: center;">--</h2>
         <div id="vocal-display" class="vocal-val">--</div>
         <div id="v-status" class="vocal-status">MICRO ARRÊTÉ</div>
         
-        <div id="m-target"></div>
-
         <button id="btn-mic" class="btn btn-gold" onclick="startVoice()">ACTIVER LE MICRO</button>
         <button class="btn btn-outline" onclick="nextStepVocal()">Passer cette mesure</button>
         <button class="btn btn-outline" onclick="nav(5)">Finir les mesures</button>
@@ -132,8 +129,6 @@
     let currentIdx = 0;
     let dataStore = {}; 
     let imgStore = {face:null, prof:null, dos:null};
-    
-    // Moteur Vocal
     let recognition = null;
     let isVocalActive = false;
     let isWaitingConfirm = false;
@@ -146,11 +141,10 @@
         if(isVocalActive) speak(mesures[currentIdx]);
     }
 
-    function speak(txt, callback) {
+    function speak(txt) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(txt);
         u.lang = 'fr-FR';
-        if(callback) u.onend = callback;
         window.speechSynthesis.speak(u);
     }
 
@@ -219,7 +213,6 @@
         renderM();
     }
 
-    // Gestion Images (Logique Initiale Conservée)
     function handleFile(input, key) {
         if (!input.files[0]) return;
         const reader = new FileReader();
@@ -300,12 +293,13 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             const prenom = document.getElementById('prenom').value || "Inconnu";
+            const telephone = document.getElementById('tel').value || "0000";
             
             doc.setFillColor(15, 15, 15); doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(212, 175, 55); doc.setFontSize(22); doc.text("ATELIER WIL", 10, 25);
             doc.setTextColor(0); doc.setFontSize(11);
             doc.text(`CLIENT : ${prenom.toUpperCase()} ${document.getElementById('nom').value.toUpperCase()}`, 10, 50);
-            doc.text(`TÉL : ${document.getElementById('tel').value}`, 10, 57);
+            doc.text(`TÉL : ${telephone}`, 10, 57);
             doc.text(`STATURE : ${document.getElementById('stature').value} cm`, 10, 64);
 
             const drawP = (imgData, x, y, isFace) => {
@@ -340,7 +334,7 @@
                 doc.setDrawColor(235); doc.line(col, rowY+2, col+85, rowY+2);
             });
 
-            doc.save(`Expert_Wil_${prenom}.pdf`);
+            doc.save(`${prenom}_${telephone}.pdf`);
         } catch (e) { alert("Erreur PDF : " + e.message); }
     }
 </script>
