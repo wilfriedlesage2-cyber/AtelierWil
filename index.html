@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Test Complet</title>
+    <title>Atelier Wil - Correction Micro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; }
+        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; --red: #e74c3c; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; overflow: hidden; }
         .step { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; width: 100vw; }
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
         input, textarea { width: 90%; max-width: 400px; padding: 18px; margin: 10px; border-radius: 12px; border: 1px solid #444; background: #1a1a1a; color: white; font-size: 18px; }
         .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer; margin-top: 20px; }
+        .btn-secours { padding: 10px 20px; background: transparent; color: var(--red); border: 1px solid var(--red); border-radius: 10px; font-size: 14px; margin-top: 20px; cursor: pointer; }
         .valeur { font-size: 110px; font-weight: bold; color: var(--accent); margin: 15px 0; }
         .status-pill { padding: 12px 25px; border-radius: 30px; background: #222; font-size: 16px; margin-top: 15px; border: 1px solid #444; }
-        .listening { background: var(--green); color: black; box-shadow: 0 0 20px var(--green); }
+        .listening { background: var(--green); color: black; box-shadow: 0 0 20px var(--green); border-color: var(--green); }
         video { width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); border-radius: 10px; }
     </style>
 </head>
@@ -33,13 +34,16 @@
         <div id="progress" style="color: var(--accent); font-weight: bold;">1 / 30</div>
         <h2 id="label" style="height: 60px; font-size: 24px;">--</h2>
         <div id="display" class="valeur">--</div>
-        <div id="status" class="status-pill">MICRO DÉSACTIVÉ</div>
+        <div id="status" class="status-pill">MICRO ARRÊTÉ</div>
+        
         <button id="btn-vocal" class="btn" onclick="demarrerSession()">ACTIVER LE MICRO</button>
+        
+        <button id="btn-relance" class="btn-secours" style="display:none;" onclick="forcerRelance()">RELANCER LE MICRO (SÉCURITÉ)</button>
     </section>
 
     <section id="step3" class="step">
         <h2 style="color:var(--accent)">OBSERVATIONS</h2>
-        <textarea id="client-notes" rows="8" placeholder="Notes morphologiques..."></textarea>
+        <textarea id="client-notes" rows="8" placeholder="Notes..."></textarea>
         <button class="btn" onclick="nextStep(4)">PHOTOS</button>
     </section>
 
@@ -55,7 +59,6 @@
     </section>
 
 <script>
-    // Liste EXACTE (sans la Stature qui est en étape 1)
     const mesuresNoms = [
         "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", 
         "Hauteur de poitrine", "Longueur devant", "Largeur devant", "Écartement de poitrine", 
@@ -72,13 +75,14 @@
     let attendConfirm = false;
     let tempVal = "";
     let sessionActive = false;
+    let microEnEcoute = false; // Etat réel du micro
 
     function nextStep(n) {
         sessionActive = false;
-        if(recognition) { try { recognition.stop(); } catch(e) {} }
+        stopRecognition();
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
-        if(n === 4) { navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => document.getElementById('video').srcObject = s); }
+        if(n === 4) startCamera();
     }
 
     function parler(texte, rappel) {
@@ -92,19 +96,41 @@
     function demarrerSession() {
         sessionActive = true;
         document.getElementById('btn-vocal').style.display = 'none';
+        document.getElementById('btn-relance').style.display = 'block';
         annoncerMesure();
+        
+        // BOUCLE DE SÉCURITÉ : Vérifie toutes les 1.5s si le micro est tombé
+        setInterval(() => {
+            if(sessionActive && !microEnEcoute && !window.speechSynthesis.speaking) {
+                console.log("Relance automatique du micro...");
+                ecouter();
+            }
+        }, 1500);
+    }
+
+    function stopRecognition() {
+        if(recognition) {
+            recognition.onresult = null;
+            recognition.onend = null;
+            try { recognition.stop(); } catch(e) {}
+            recognition = null;
+        }
+        microEnEcoute = false;
     }
 
     function ecouter() {
-        if(!sessionActive) return;
+        if(!sessionActive || window.speechSynthesis.speaking) return;
+        
+        stopRecognition();
         
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(recognition) { recognition.onresult = null; recognition.onend = null; try { recognition.stop(); } catch(e) {} }
-        
         recognition = new Speech();
         recognition.lang = 'fr-FR';
-        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
         recognition.onstart = () => {
+            microEnEcoute = true;
             document.getElementById('status').innerText = "À L'ÉCOUTE...";
             document.getElementById('status').classList.add('listening');
         };
@@ -116,24 +142,34 @@
                     valeursMesures.push(tempVal);
                     currentIdx++;
                     if(currentIdx < mesuresNoms.length) annoncerMesure(); else nextStep(3);
-                } else { annoncerMesure(); }
+                } else { 
+                    annoncerMesure(); 
+                }
             } else {
                 let nb = vocal.replace(/[^0-9,.]/g, '').replace(',', '.');
-                if(nb) {
-                    tempVal = nb;
+                let matches = vocal.match(/\d+([,.]\d+)?/);
+                if(matches) {
+                    tempVal = matches[0].replace(',', '.');
                     attendConfirm = true;
-                    document.getElementById('display').innerText = nb;
-                    parler(nb + ". Valider ?", () => { ecouter(); });
-                } else { ecouter(); }
+                    document.getElementById('display').innerText = tempVal;
+                    parler(tempVal + ". Valider ?"); // Le rappel se fera via la boucle setInterval
+                }
             }
         };
 
         recognition.onend = () => {
-            document.getElementById('status').innerText = "MICRO EN PAUSE";
+            microEnEcoute = false;
+            document.getElementById('status').innerText = "EN PAUSE / ANALYSE";
             document.getElementById('status').classList.remove('listening');
         };
 
-        recognition.start();
+        try { recognition.start(); } catch(e) { microEnEcoute = false; }
+    }
+
+    function forcerRelance() {
+        window.speechSynthesis.cancel();
+        parler("Micro relancé");
+        ecouter();
     }
 
     function annoncerMesure() {
@@ -141,7 +177,13 @@
         document.getElementById('label').innerText = mesuresNoms[currentIdx];
         document.getElementById('display').innerText = "--";
         document.getElementById('progress').innerText = `${currentIdx + 1} / 30`;
-        parler(mesuresNoms[currentIdx], () => { ecouter(); });
+        parler(mesuresNoms[currentIdx]);
+    }
+
+    // Caméra & Photo
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(s => document.getElementById('video').srcObject = s);
     }
 
     let photoCount = 0;
@@ -159,19 +201,13 @@
         const p = document.getElementById('client-prenom').value;
         const n = document.getElementById('client-nom').value;
         const s = document.getElementById('client-stature').value;
-        
-        doc.setFontSize(18);
-        doc.text(`Fiche Client : ${p} ${n}`, 20, 20);
-        doc.text(`Stature : ${s} cm`, 20, 30);
-        
-        let y = 50;
-        doc.setFontSize(12);
+        doc.text(`Fiche : ${p} ${n} - Stature: ${s}cm`, 20, 20);
+        let y = 40;
         mesuresNoms.forEach((m, i) => {
             doc.text(`${m} : ${valeursMesures[i] || '--'} cm`, 20, y);
-            y += 7;
-            if(y > 280) { doc.addPage(); y = 20; }
+            y += 8;
         });
-        doc.save(`${p}_${n}.pdf`);
+        doc.save(`${p}_mesures.pdf`);
     }
 </script>
 </body>
