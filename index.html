@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Application Officielle</title>
+    <title>Atelier Wil - Expert</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; --red: #ff4444; }
@@ -13,24 +13,20 @@
         
         input, textarea { width: 90%; max-width: 400px; padding: 15px; margin: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 16px; }
         .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        .btn:active { transform: scale(0.95); opacity: 0.8; }
         
         .valeur { font-size: 100px; font-weight: bold; color: var(--accent); margin: 10px 0; }
-        .status-pill { padding: 10px 20px; border-radius: 20px; background: #222; font-size: 14px; margin-top: 10px; }
-        .listening { background: var(--green); color: black; box-shadow: 0 0 15px var(--green); }
+        .status-pill { padding: 10px 20px; border-radius: 20px; background: #222; font-size: 14px; margin-top: 10px; border: 1px solid #444; }
+        .listening { background: var(--green); color: black; box-shadow: 0 0 15px var(--green); border: none; }
 
-        #photo-container { position: relative; width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); margin: 15px 0; touch-action: none; }
+        #photo-container { position: relative; width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); margin: 15px 0; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        canvas { display: none; }
-        .guide-line { position: absolute; left: 0; width: 100%; height: 2px; background: var(--accent); cursor: ns-resize; touch-action: none; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        .guide-line::after { content: "↔"; position: absolute; right: 5px; top: -10px; color: var(--accent); font-weight: bold; }
+        .guide-line { position: absolute; left: 0; width: 100%; height: 2px; background: var(--accent); cursor: ns-resize; touch-action: none; }
     </style>
 </head>
 <body>
 
     <section id="step1" class="step active">
         <h1 style="color:var(--accent); letter-spacing: 3px;">ATELIER WIL</h1>
-        <p>Identification du client</p>
         <input type="text" id="client-prenom" placeholder="Prénom">
         <input type="text" id="client-nom" placeholder="Nom">
         <input type="tel" id="client-tel" placeholder="Numéro de téléphone">
@@ -38,8 +34,8 @@
     </section>
 
     <section id="step2" class="step">
-        <div id="progress" style="opacity:0.5; font-size: 14px;">1 / 31</div>
-        <h2 id="label" style="height: 60px; display: flex; align-items: center; color: var(--accent);">Prêt</h2>
+        <div id="progress" style="opacity:0.5">1 / 31</div>
+        <h2 id="label" style="height: 60px; color: var(--accent);">Prêt</h2>
         <div id="display" class="valeur">--</div>
         <div id="status" class="status-pill">MICRO DÉSACTIVÉ</div>
         <button id="btn-vocal" class="btn" onclick="initVocal()">ACTIVER LE MICRO</button>
@@ -47,8 +43,7 @@
 
     <section id="step3" class="step">
         <h2 style="color:var(--accent)">OBSERVATIONS</h2>
-        <p>Morphologie et remarques :</p>
-        <textarea id="client-notes" rows="6" placeholder="Ex: Cambrure, asymétrie épaules..."></textarea>
+        <textarea id="client-notes" rows="6" placeholder="Notes de morphologie..."></textarea>
         <button class="btn" onclick="nextStep(4)">PASSER AUX PHOTOS</button>
     </section>
 
@@ -56,20 +51,17 @@
         <h2 id="photo-title" style="color:var(--accent)">VUE DE FACE</h2>
         <div id="photo-container">
             <video id="video" autoplay playsinline></video>
-            <div class="guide-line" style="top: 20%" onpointermove="dragLine(event)"></div>
-            <div class="guide-line" style="top: 40%" onpointermove="dragLine(event)"></div>
-            <div class="guide-line" style="top: 60%" onpointermove="dragLine(event)"></div>
-            <div class="guide-line" style="top: 80%" onpointermove="dragLine(event)"></div>
+            <div class="guide-line" style="top: 25%" onpointermove="dragLine(event)"></div>
+            <div class="guide-line" style="top: 50%" onpointermove="dragLine(event)"></div>
+            <div class="guide-line" style="top: 75%" onpointermove="dragLine(event)"></div>
         </div>
-        <button class="btn" onclick="capturePhoto()">CAPTURER LA VUE</button>
-        <canvas id="canvas"></canvas>
+        <button class="btn" onclick="capturePhoto()">CAPTURER</button>
     </section>
 
     <section id="step5" class="step">
         <h2 style="color:var(--accent)">DOSSIER COMPLET</h2>
-        <p>Toutes les données ont été compilées.</p>
         <button class="btn" onclick="genererPDF()">TÉLÉCHARGER LE PDF</button>
-        <button class="btn" style="background:#333; color:white; margin-top:10px;" onclick="location.reload()">NOUVEAU CLIENT</button>
+        <button class="btn" style="background:#333; color:white;" onclick="location.reload()">NOUVEAU</button>
     </section>
 
 <script>
@@ -79,10 +71,11 @@
     let recognition;
     let attendConfirm = false;
     let tempVal = "";
-    let currentPhotoIdx = 0;
-    const photoSteps = ["FACE", "PROFIL", "DOS"];
+    let isVocalActive = false;
 
     function nextStep(n) {
+        isVocalActive = false;
+        if(recognition) recognition.stop();
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
         if(n === 4) startCamera();
@@ -90,39 +83,41 @@
 
     function validerEtape1() {
         if (!document.getElementById('client-prenom').value || !document.getElementById('client-tel').value) {
-            alert("Prénom et Téléphone requis pour le nom du fichier.");
-            return;
+            alert("Prénom et Téléphone requis."); return;
         }
         nextStep(2);
     }
 
-    // --- MOTEUR VOCAL ---
-    function parler(t, cb) {
-        if(recognition) try { recognition.stop(); } catch(e){}
+    function parler(t) {
+        window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(t);
         u.lang = 'fr-FR';
-        u.rate = 1.1;
-        u.onend = () => { 
-            if(recognition) try { recognition.start(); } catch(e){}
-            if(cb) cb();
-        };
+        u.onstart = () => { if(recognition) recognition.abort(); };
+        u.onend = () => { if(isVocalActive && recognition) try { recognition.start(); } catch(e){} };
         window.speechSynthesis.speak(u);
     }
 
     function initVocal() {
+        isVocalActive = true;
         document.getElementById('btn-vocal').style.display = 'none';
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new Speech();
         recognition.lang = 'fr-FR';
         recognition.continuous = false;
+        recognition.interimResults = false;
 
         recognition.onstart = () => {
             document.getElementById('status').innerText = "À VOUS...";
             document.getElementById('status').classList.add('listening');
         };
+
         recognition.onend = () => {
             document.getElementById('status').innerText = "PAUSE";
             document.getElementById('status').classList.remove('listening');
+            // RELANCE AUTOMATIQUE SI PAS DE RESULTAT
+            if(isVocalActive && !window.speechSynthesis.speaking) {
+                setTimeout(() => { try { recognition.start(); } catch(e){} }, 300);
+            }
         };
 
         recognition.onresult = (e) => {
@@ -143,8 +138,6 @@
                     attendConfirm = true;
                     document.getElementById('display').innerText = tempVal.replace('.', ',');
                     parler(tempVal.replace('.', ',') + ". Valider ?");
-                } else {
-                    try { recognition.start(); } catch(e){}
                 }
             }
         };
@@ -159,7 +152,6 @@
         parler(mesuresNoms[currentIdx]);
     }
 
-    // --- PHOTO ---
     function dragLine(e) {
         if(e.buttons !== 1 && e.type !== 'pointermove') return;
         let rect = document.getElementById('photo-container').getBoundingClientRect();
@@ -169,56 +161,27 @@
 
     function startCamera() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => { document.getElementById('video').srcObject = stream; })
-        .catch(err => alert("Erreur caméra : " + err));
+        .then(stream => { document.getElementById('video').srcObject = stream; });
     }
 
     function capturePhoto() {
-        currentPhotoIdx++;
-        if(currentPhotoIdx < photoSteps.length) {
-            document.getElementById('photo-title').innerText = "VUE DE " + photoSteps[currentPhotoIdx];
-            alert("Vue capturée ! Passez à la suivante.");
-        } else {
-            nextStep(5);
-        }
+        alert("Photo capturée");
+        nextStep(5);
     }
 
-    // --- PDF ---
     function genererPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const prenom = document.getElementById('client-prenom').value;
-        const nom = document.getElementById('client-nom').value;
         const tel = document.getElementById('client-tel').value.replace(/\s/g, '');
-        const notes = document.getElementById('client-notes').value;
-
-        doc.setFontSize(22);
-        doc.setTextColor(212, 175, 55);
-        doc.text("ATELIER WIL - FICHE TECHNIQUE", 20, 25);
         
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Client : ${prenom} ${nom}`, 20, 40);
-        doc.text(`Tél : ${tel}`, 20, 47);
-        doc.text(`Date : ${new Date().toLocaleDateString()}`, 20, 54);
-        
-        doc.text("OBSERVATIONS :", 20, 65);
-        const splitNotes = doc.splitTextToSize(notes || "Aucune note.", 170);
-        doc.text(splitNotes, 20, 72);
-
-        let y = 100;
-        doc.setFontSize(14);
-        doc.text("MESURES (cm) :", 20, y);
-        y += 10;
-        doc.setFontSize(11);
-
+        doc.text(`Atelier Wil - ${prenom}`, 20, 20);
+        let y = 40;
         mesuresNoms.forEach((m, i) => {
-            doc.text(`${m} :`, 20, y);
-            doc.text(`${valeursMesures[i] || '--'}`, 80, y);
-            y += 6.5;
-            if(y > 275) { doc.addPage(); y = 20; }
+            doc.text(`${m} : ${valeursMesures[i] || '--'} cm`, 20, y);
+            y += 7;
+            if(y > 280) { doc.addPage(); y = 20; }
         });
-
         doc.save(`${prenom}_${tel}.pdf`);
     }
 </script>
