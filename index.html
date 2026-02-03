@@ -3,211 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Correction Micro</title>
+    <title>Atelier Wil - Expert Pro Vocal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        function nav(n) {
+            document.querySelectorAll('.page').forEach(p => {
+                p.style.display = 'none';
+                p.classList.remove('active');
+            });
+            const target = document.getElementById('p' + n);
+            if (target) {
+                target.style.display = 'flex';
+                target.classList.add('active');
+                if(n === 4) renderM();
+                if(n === 6) showRecap();
+                window.scrollTo(0,0);
+            }
+            if(n !== 4) stopVoice(); 
+        }
+    </script>
     <style>
-        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; --red: #e74c3c; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; overflow: hidden; }
-        .step { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; width: 100vw; }
-        .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        input, textarea { width: 90%; max-width: 400px; padding: 18px; margin: 10px; border-radius: 12px; border: 1px solid #444; background: #1a1a1a; color: white; font-size: 18px; }
-        .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer; margin-top: 20px; }
-        .btn-secours { padding: 10px 20px; background: transparent; color: var(--red); border: 1px solid var(--red); border-radius: 10px; font-size: 14px; margin-top: 20px; cursor: pointer; }
-        .valeur { font-size: 110px; font-weight: bold; color: var(--accent); margin: 15px 0; }
-        .status-pill { padding: 12px 25px; border-radius: 30px; background: #222; font-size: 16px; margin-top: 15px; border: 1px solid #444; }
-        .listening { background: var(--green); color: black; box-shadow: 0 0 20px var(--green); border-color: var(--green); }
-        video { width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); border-radius: 10px; }
+        :root { --accent: #d4af37; --dark: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --green: #2ecc71; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: var(--text); margin: 0; padding: 0; }
+        .page { display: none; min-height: 100vh; padding: 25px; box-sizing: border-box; flex-direction: column; }
+        .active { display: flex !important; }
+        .logo { color: var(--accent); font-size: 32px; font-weight: bold; text-align: center; margin: 40px 0; letter-spacing: 5px; }
+        input, textarea { width: 100%; padding: 15px; background: #222; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; outline: none; }
+        .btn { width: 100%; padding: 20px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; font-size: 16px; display: block; }
+        .btn-gold { background: var(--accent); color: black; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #888; }
+        .m-card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; position: relative; }
+        .m-input { font-size: 24px; text-align: center; color: var(--accent); border-color: var(--accent); margin-bottom: 0; }
+        .editor-container { position: relative; width: 100%; max-width: 500px; margin: 15px auto; background: #000; border: 2px solid #333; touch-action: none; overflow: hidden; }
+        #img-editor { width: 100%; display: block; }
+        .drag-line { position: absolute; left: 0; width: 100%; height: 3px; background: #ff0000; cursor: ns-resize; z-index: 10; }
+        .drag-line::after { content: attr(data-label); font-size: 11px; background: #ff0000; color: white; padding: 2px 6px; position: absolute; right: 0; top: -18px; font-weight: bold; }
+        label { display: block; margin: 10px 0 5px; color: #888; font-size: 14px; text-transform: uppercase; }
+        .camera-input { border: 2px dashed var(--accent); background: rgba(212, 175, 55, 0.05); color: var(--accent); padding: 30px; text-align: center; }
+        
+        /* Vocal Styles */
+        .vocal-status { padding: 10px; border-radius: 8px; font-size: 12px; text-align: center; margin-bottom: 10px; background: #222; border: 1px solid #444; }
+        .listening { background: var(--green); color: black; font-weight: bold; }
+        .vocal-val { font-size: 40px; color: var(--accent); font-weight: bold; margin: 10px 0; }
     </style>
 </head>
-<body>
+<body onload="loadSavedData()">
 
-    <section id="step1" class="step active">
-        <h1 style="color:var(--accent)">ATELIER WIL</h1>
-        <input type="text" id="client-prenom" placeholder="Prénom">
-        <input type="text" id="client-nom" placeholder="Nom">
-        <input type="tel" id="client-tel" placeholder="Téléphone">
-        <input type="number" id="client-stature" placeholder="Stature (cm)">
-        <button class="btn" onclick="nextStep(2)">LANCER LES MESURES</button>
-    </section>
+    <div id="p1" class="page active" style="justify-content: center;">
+        <div class="logo">ATELIER WIL</div>
+        <button class="btn btn-gold" onclick="nav(2)">NOUVELLE PRISE DE MESURES</button>
+    </div>
 
-    <section id="step2" class="step">
-        <div id="progress" style="color: var(--accent); font-weight: bold;">1 / 30</div>
-        <h2 id="label" style="height: 60px; font-size: 24px;">--</h2>
-        <div id="display" class="valeur">--</div>
-        <div id="status" class="status-pill">MICRO ARRÊTÉ</div>
+    <div id="p2" class="page">
+        <h2>Client</h2>
+        <input type="text" id="prenom" placeholder="PRÉNOM" oninput="saveData()">
+        <input type="text" id="nom" placeholder="NOM" oninput="saveData()">
+        <input type="tel" id="tel" placeholder="TÉLÉPHONE" oninput="saveData()">
+        <label>Stature globale (cm)</label>
+        <input type="number" id="stature" class="m-input" placeholder="0" oninput="saveData()">
+        <button class="btn btn-gold" onclick="nav(3)">Continuer</button>
+        <button class="btn btn-outline" onclick="nav(1)">Retour</button>
+    </div>
+
+    <div id="p3" class="page" style="justify-content: center;">
+        <h2>Préparation</h2>
+        <p style="color:#888; text-align: center;">Installation du client. Les mesures seront dictées une par une.</p>
+        <button class="btn btn-gold" onclick="nav(4)">Démarrer les mesures</button>
+        <button class="btn btn-outline" onclick="nav(2)">Retour</button>
+    </div>
+
+    <div id="p4" class="page">
+        <h2 id="m-label" style="min-height: 60px; color: var(--accent);">--</h2>
+        <div id="vocal-display" class="vocal-val">--</div>
+        <div id="v-status" class="vocal-status">MICRO ARRÊTÉ</div>
         
-        <button id="btn-vocal" class="btn" onclick="demarrerSession()">ACTIVER LE MICRO</button>
+        <div id="m-target"></div>
+
+        <button id="btn-mic" class="btn btn-gold" onclick="startVoice()">ACTIVER LE MICRO</button>
+        <button class="btn btn-outline" onclick="nextStepVocal()">Passer cette mesure</button>
+        <button class="btn btn-outline" onclick="nav(5)">Finir les mesures</button>
+    </div>
+
+    <div id="p5" class="page">
+        <h2>Expertise Visuelle</h2>
+        <textarea id="notes" rows="3" placeholder="Observations..." oninput="saveData()"></textarea>
         
-        <button id="btn-relance" class="btn-secours" style="display:none;" onclick="forcerRelance()">RELANCER LE MICRO (SÉCURITÉ)</button>
-    </section>
+        <label>Face (Appareil photo) :</label>
+        <input type="file" accept="image/*" capture="camera" class="camera-input" onchange="handleFile(this, 'face')">
+        
+        <div class="editor-container" id="editor-wrap" style="display:none;">
+            <img id="img-editor">
+            <div class="drag-line" id="line-poit" data-label="POITRINE" style="top:25%"></div>
+            <div class="drag-line" id="line-tail" data-label="TAILLE" style="top:45%"></div>
+            <div class="drag-line" id="line-bass" data-label="BASSIN" style="top:65%"></div>
+            <div class="drag-line" id="line-hanc" data-label="HANCHES" style="top:85%"></div>
+        </div>
 
-    <section id="step3" class="step">
-        <h2 style="color:var(--accent)">OBSERVATIONS</h2>
-        <textarea id="client-notes" rows="8" placeholder="Notes..."></textarea>
-        <button class="btn" onclick="nextStep(4)">PHOTOS</button>
-    </section>
+        <label>Profil :</label>
+        <input type="file" accept="image/*" capture="camera" class="camera-input" onchange="handleFile(this, 'prof')">
+        
+        <label>Dos :</label>
+        <input type="file" accept="image/*" capture="camera" class="camera-input" onchange="handleFile(this, 'dos')">
+        
+        <button class="btn btn-gold" onclick="nav(6)">Récapitulatif</button>
+    </div>
 
-    <section id="step4" class="step">
-        <h2 id="photo-title" style="color:var(--accent)">VUE DE FACE</h2>
-        <video id="video" autoplay playsinline></video>
-        <button class="btn" onclick="prochainePhoto()">CAPTURER</button>
-    </section>
-
-    <section id="step5" class="step">
-        <h2 style="color:var(--accent)">DOSSIER COMPLET</h2>
-        <button class="btn" onclick="genererPDF()">TÉLÉCHARGER LE PDF</button>
-    </section>
+    <div id="p6" class="page">
+        <h2>Exportation</h2>
+        <div id="recap-status" style="background:#1a1a1a; padding:20px; border-radius:12px; margin-bottom:20px; border:1px solid #333;"></div>
+        <button class="btn btn-gold" onclick="makePDF()">GÉNÉRER LE PDF EXPERT</button>
+        <button class="btn btn-outline" style="color:#ff4444; border-color: #551111;" onclick="clearData()">NOUVEAU CLIENT</button>
+        <button class="btn btn-outline" onclick="nav(5)">Retour</button>
+    </div>
 
 <script>
-    const mesuresNoms = [
+    const mesures = [
         "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", 
-        "Hauteur de poitrine", "Longueur devant", "Largeur devant", "Écartement de poitrine", 
-        "Encolure", "Longueur d'épaule", "Tour de bras", "Tour de coude", "Tour de poignet", 
-        "Longueur de bras au coude", "Longueur de bras total", "Largeur dos", "Longueur dos", 
-        "Hauteur sous bras", "Hauteur taille-hanches", "Hauteur taille-bassin", "Tour de cuisse", 
-        "Tour de genou", "Tour de mollet", "Tour de cheville", "Hauteur taille-genou", 
-        "Hauteur taille-sol", "Hauteur entrejambe-sol", "Montante", "Longueur côté", "Hauteur genou-sol"
+        "Longueur devant (7e cervicale)", "Longueur devant carrure", "Longueur devant poitrine", 
+        "Longueur devant taille", "Longueur devant bassin", "Longueur devant hanches", 
+        "Carrure devant", "Écart seins", "Distance pointe de seins - épaule", 
+        "Longueur épaule", "Encolure devant", "Encolure totale", "Carrure dos", 
+        "Longueur carrure dos", "Longueur poitrine dos", "Longueur taille dos", 
+        "Longueur hanches dos", "Longueur bassin dos", "Longueur taille sol Devant", 
+        "Longueur taille sol Dos", "Longueur taille sol côté", "Longueur vêtement", 
+        "Longueur bras", "Longueur bras-coude", "Tour bras", "Tour avant-bras", "Tour poignet"
     ];
 
-    let valeursMesures = [];
     let currentIdx = 0;
+    let dataStore = {}; 
+    let imgStore = {face:null, prof:null, dos:null};
+    
+    // Moteur Vocal
     let recognition = null;
-    let attendConfirm = false;
-    let tempVal = "";
-    let sessionActive = false;
-    let microEnEcoute = false; // Etat réel du micro
+    let isVocalActive = false;
+    let isWaitingConfirm = false;
+    let tempValue = "";
 
-    function nextStep(n) {
-        sessionActive = false;
-        stopRecognition();
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        document.getElementById('step' + n).classList.add('active');
-        if(n === 4) startCamera();
+    function renderM() {
+        if(currentIdx >= mesures.length) { nav(5); return; }
+        document.getElementById('m-label').innerText = mesures[currentIdx];
+        document.getElementById('vocal-display').innerText = dataStore[currentIdx] || "--";
+        if(isVocalActive) speak(mesures[currentIdx]);
     }
 
-    function parler(texte, rappel) {
+    function speak(txt, callback) {
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(texte);
+        const u = new SpeechSynthesisUtterance(txt);
         u.lang = 'fr-FR';
-        u.onend = () => { if(rappel && sessionActive) rappel(); };
+        if(callback) u.onend = callback;
         window.speechSynthesis.speak(u);
     }
 
-    function demarrerSession() {
-        sessionActive = true;
-        document.getElementById('btn-vocal').style.display = 'none';
-        document.getElementById('btn-relance').style.display = 'block';
-        annoncerMesure();
-        
-        // BOUCLE DE SÉCURITÉ : Vérifie toutes les 1.5s si le micro est tombé
-        setInterval(() => {
-            if(sessionActive && !microEnEcoute && !window.speechSynthesis.speaking) {
-                console.log("Relance automatique du micro...");
-                ecouter();
-            }
-        }, 1500);
+    function startVoice() {
+        isVocalActive = true;
+        document.getElementById('btn-mic').style.display = 'none';
+        renderM();
+        initRecognition();
     }
 
-    function stopRecognition() {
-        if(recognition) {
-            recognition.onresult = null;
-            recognition.onend = null;
-            try { recognition.stop(); } catch(e) {}
-            recognition = null;
-        }
-        microEnEcoute = false;
+    function stopVoice() {
+        isVocalActive = false;
+        if(recognition) recognition.stop();
+        document.getElementById('btn-mic').style.display = 'block';
     }
 
-    function ecouter() {
-        if(!sessionActive || window.speechSynthesis.speaking) return;
-        
-        stopRecognition();
-        
+    function initRecognition() {
+        if(!isVocalActive) return;
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new Speech();
         recognition.lang = 'fr-FR';
         recognition.continuous = false;
-        recognition.interimResults = false;
 
         recognition.onstart = () => {
-            microEnEcoute = true;
-            document.getElementById('status').innerText = "À L'ÉCOUTE...";
-            document.getElementById('status').classList.add('listening');
+            const s = document.getElementById('v-status');
+            s.innerText = "ÉCOUTE EN COURS...";
+            s.classList.add('listening');
         };
 
         recognition.onresult = (e) => {
-            const vocal = e.results[0][0].transcript.toLowerCase();
-            if(attendConfirm) {
-                if(vocal.includes("oui") || vocal.includes("ok") || vocal.includes("valide")) {
-                    valeursMesures.push(tempVal);
+            const result = e.results[0][0].transcript.toLowerCase();
+            if(isWaitingConfirm) {
+                if(result.includes("oui") || result.includes("ok") || result.includes("valide")) {
+                    dataStore[currentIdx] = tempValue;
+                    saveData();
                     currentIdx++;
-                    if(currentIdx < mesuresNoms.length) annoncerMesure(); else nextStep(3);
-                } else { 
-                    annoncerMesure(); 
+                    isWaitingConfirm = false;
+                    renderM();
+                } else if(result.includes("non") || result.includes("recommence")) {
+                    isWaitingConfirm = false;
+                    renderM();
                 }
             } else {
-                let nb = vocal.replace(/[^0-9,.]/g, '').replace(',', '.');
-                let matches = vocal.match(/\d+([,.]\d+)?/);
-                if(matches) {
-                    tempVal = matches[0].replace(',', '.');
-                    attendConfirm = true;
-                    document.getElementById('display').innerText = tempVal;
-                    parler(tempVal + ". Valider ?"); // Le rappel se fera via la boucle setInterval
+                let match = result.match(/\d+([,.]\d+)?/);
+                if(match) {
+                    tempValue = match[0].replace(',', '.');
+                    document.getElementById('vocal-display').innerText = tempValue;
+                    isWaitingConfirm = true;
+                    speak(tempValue + " ?");
                 }
             }
         };
 
         recognition.onend = () => {
-            microEnEcoute = false;
-            document.getElementById('status').innerText = "EN PAUSE / ANALYSE";
-            document.getElementById('status').classList.remove('listening');
+            document.getElementById('v-status').classList.remove('listening');
+            document.getElementById('v-status').innerText = "MICRO EN PAUSE";
+            if(isVocalActive) setTimeout(() => { try { recognition.start(); } catch(e){} }, 500);
         };
-
-        try { recognition.start(); } catch(e) { microEnEcoute = false; }
+        
+        try { recognition.start(); } catch(e) {}
     }
 
-    function forcerRelance() {
-        window.speechSynthesis.cancel();
-        parler("Micro relancé");
-        ecouter();
+    function nextStepVocal() {
+        currentIdx++;
+        isWaitingConfirm = false;
+        renderM();
     }
 
-    function annoncerMesure() {
-        attendConfirm = false;
-        document.getElementById('label').innerText = mesuresNoms[currentIdx];
-        document.getElementById('display').innerText = "--";
-        document.getElementById('progress').innerText = `${currentIdx + 1} / 30`;
-        parler(mesuresNoms[currentIdx]);
+    // Gestion Images (Logique Initiale Conservée)
+    function handleFile(input, key) {
+        if (!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+                canvas.width = img.width * scale; canvas.height = img.height * scale;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                imgStore[key] = canvas.toDataURL('image/jpeg', 0.8);
+                if(key === 'face') { 
+                    document.getElementById('img-editor').src = imgStore.face; 
+                    document.getElementById('editor-wrap').style.display='block'; 
+                    initDrag(); 
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 
-    // Caméra & Photo
-    function startCamera() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(s => document.getElementById('video').srcObject = s);
-    }
-
-    let photoCount = 0;
-    function prochainePhoto() {
-        photoCount++;
-        const titres = ["FACE", "PROFIL", "DOS"];
-        if(photoCount < 3) {
-            document.getElementById('photo-title').innerText = "VUE DE " + titres[photoCount];
-        } else { nextStep(5); }
-    }
-
-    function genererPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const p = document.getElementById('client-prenom').value;
-        const n = document.getElementById('client-nom').value;
-        const s = document.getElementById('client-stature').value;
-        doc.text(`Fiche : ${p} ${n} - Stature: ${s}cm`, 20, 20);
-        let y = 40;
-        mesuresNoms.forEach((m, i) => {
-            doc.text(`${m} : ${valeursMesures[i] || '--'} cm`, 20, y);
-            y += 8;
+    function initDrag() {
+        const wrap = document.getElementById('editor-wrap');
+        const moveH = (e) => {
+            e.preventDefault();
+            const rect = wrap.getBoundingClientRect();
+            const touchY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+            const y = touchY - rect.top;
+            const percent = (y / rect.height) * 100;
+            if(percent >= 0 && percent <= 100) e.target.style.top = percent + '%';
+        };
+        document.querySelectorAll('.drag-line').forEach(l => {
+            l.ontouchmove = moveH;
+            l.onmousedown = () => { document.onmousemove = moveH; document.onmouseup = () => document.onmousemove = null; };
         });
-        doc.save(`${p}_mesures.pdf`);
+    }
+
+    function showRecap() {
+        const p = document.getElementById('prenom').value || "Inconnu";
+        const t = document.getElementById('tel').value || "N/A";
+        document.getElementById('recap-status').innerHTML = `<b>Client :</b> ${p}<br><b>Tél :</b> ${t}<br><b>Mesures :</b> ${Object.keys(dataStore).length} / 31`;
+    }
+
+    function saveData() {
+        const storage = {
+            prenom: document.getElementById('prenom').value,
+            nom: document.getElementById('nom').value,
+            tel: document.getElementById('tel').value,
+            stature: document.getElementById('stature').value,
+            notes: document.getElementById('notes').value,
+            mesures: dataStore
+        };
+        localStorage.setItem('atelierWilDataVocal', JSON.stringify(storage));
+    }
+
+    function loadSavedData() {
+        const raw = localStorage.getItem('atelierWilDataVocal');
+        if(!raw) return;
+        const s = JSON.parse(raw);
+        document.getElementById('prenom').value = s.prenom || '';
+        document.getElementById('nom').value = s.nom || '';
+        document.getElementById('tel').value = s.tel || '';
+        document.getElementById('stature').value = s.stature || '';
+        document.getElementById('notes').value = s.notes || '';
+        dataStore = s.mesures || {};
+    }
+
+    function clearData() {
+        if(confirm("Effacer ce client ?")) {
+            localStorage.removeItem('atelierWilDataVocal');
+            location.reload();
+        }
+    }
+
+    function makePDF() {
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const prenom = document.getElementById('prenom').value || "Inconnu";
+            
+            doc.setFillColor(15, 15, 15); doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(212, 175, 55); doc.setFontSize(22); doc.text("ATELIER WIL", 10, 25);
+            doc.setTextColor(0); doc.setFontSize(11);
+            doc.text(`CLIENT : ${prenom.toUpperCase()} ${document.getElementById('nom').value.toUpperCase()}`, 10, 50);
+            doc.text(`TÉL : ${document.getElementById('tel').value}`, 10, 57);
+            doc.text(`STATURE : ${document.getElementById('stature').value} cm`, 10, 64);
+
+            const drawP = (imgData, x, y, isFace) => {
+                if(!imgData) return;
+                const w = 60; const h = 80;
+                doc.addImage(imgData, 'JPEG', x, y, w, h);
+                if(isFace) {
+                    doc.setDrawColor(255, 0, 0); doc.setLineWidth(0.4);
+                    document.querySelectorAll('.drag-line').forEach(l => {
+                        const percent = parseFloat(l.style.top) / 100;
+                        const lineY = y + (percent * h);
+                        doc.line(x, lineY, x + w, lineY);
+                        doc.setFontSize(6); doc.text(l.getAttribute('data-label'), x + w + 1, lineY + 1);
+                    });
+                }
+            };
+
+            drawP(imgStore.face, 10, 75, true);
+            drawP(imgStore.prof, 75, 75, false);
+            drawP(imgStore.dos, 140, 75, false);
+
+            doc.setFontSize(11); doc.text("OBSERVATIONS :", 10, 170);
+            doc.setFontSize(9); doc.text(document.getElementById('notes').value || "RAS", 10, 178, {maxWidth: 190});
+
+            doc.addPage();
+            doc.setFontSize(16); doc.setTextColor(212, 175, 55); doc.text("MESURES DÉTAILLÉES", 10, 20);
+            mesures.forEach((m, i) => {
+                let col = (i >= 16) ? 110 : 10;
+                let rowY = 35 + ((i >= 16 ? i-16 : i) * 8.5);
+                doc.setFontSize(8.5); doc.setTextColor(100); doc.text(m, col, rowY);
+                doc.setFontSize(9.5); doc.setTextColor(0); doc.text((dataStore[i] || "--") + " cm", col + 85, rowY, {align:'right'});
+                doc.setDrawColor(235); doc.line(col, rowY+2, col+85, rowY+2);
+            });
+
+            doc.save(`Expert_Wil_${prenom}.pdf`);
+        } catch (e) { alert("Erreur PDF : " + e.message); }
     }
 </script>
 </body>
