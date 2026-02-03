@@ -3,121 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atelier Wil - Mains Libres</title>
+    <title>Atelier Wil - Expert</title>
     <style>
         :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; overflow: hidden; }
-        .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .mesure-nom { font-size: 28px; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
-        .valeur { font-size: 120px; font-weight: bold; color: white; margin: 20px 0; }
-        .status-bar { position: fixed; bottom: 0; width: 100%; padding: 20px; background: #111; border-top: 2px solid #222; }
-        .indicator { width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-right: 10px; background: #444; }
-        .recording { background: var(--green); box-shadow: 0 0 15px var(--green); }
-        .instruction { font-style: italic; color: #888; margin-top: 10px; }
+        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; }
+        .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .mesure-nom { font-size: 32px; color: var(--accent); text-transform: uppercase; }
+        .valeur { font-size: 140px; font-weight: bold; margin: 20px 0; }
+        .indicator { width: 15px; height: 15px; border-radius: 50%; display: inline-block; background: #444; margin-right: 10px; }
+        .active { background: var(--green); box-shadow: 0 0 15px var(--green); }
+        .btn-start { padding: 20px 40px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="next-label" style="color: #555; font-size: 14px;">PRÊT</div>
-    <div class="mesure-nom" id="label">Chargement...</div>
-    <div class="valeur" id="display">--</div>
-    <div class="instruction" id="hint">Dites un chiffre pour commencer</div>
-    
-    <button onclick="startListening()" id="start-btn" style="padding: 15px 30px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; cursor: pointer;">ACTIVER LE MODE MAINS LIBRES</button>
+<div class="container" id="main-ui" style="display:none;">
+    <div id="label" class="mesure-nom">Chargement...</div>
+    <div id="display" class="valeur">--</div>
+    <div>
+        <span id="led" class="indicator"></span>
+        <span id="state">ÉCOUTE...</span>
+    </div>
 </div>
 
-<div class="status-bar">
-    <span id="led" class="indicator"></span>
-    <span id="state">Micro désactivé</span>
+<div class="container" id="start-screen">
+    <h1 style="color:var(--accent); letter-spacing:5px;">ATELIER WIL</h1>
+    <button class="btn-start" onclick="init()">DÉMARRER LE MAINS LIBRES</button>
 </div>
 
 <script>
     const mesures = ["Poitrine", "Taille", "Hanches", "Bassin", "Long. Devant", "Carrure Devant", "Encolure", "Carrure Dos", "Long. Dos", "Bras", "Poignet"];
     let idx = 0;
-    const results = {};
-    
-    const label = document.getElementById('label');
-    const display = document.getElementById('display');
-    const led = document.getElementById('led');
-    const state = document.getElementById('state');
-    const startBtn = document.getElementById('start-btn');
+    let recognition;
+    let isLocked = false;
 
-    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new Speech();
-    
-    // CONFIGURATION CRUCIALE POUR REDMI/CHROME
-    recognition.lang = 'fr-FR';
-    recognition.continuous = true; // Reste allumé en permanence
-    recognition.interimResults = false; // N'attend que la version finale
-
-    function startListening() {
-        try {
-            recognition.start();
-            startBtn.style.display = 'none';
-            label.innerText = mesures[idx];
-        } catch(e) { console.log("Déjà lancé"); }
+    function init() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'flex';
+        setupMic();
     }
 
-    recognition.onstart = () => {
-        led.classList.add('recording');
-        state.innerText = "JE VOUS ÉCOUTE...";
-    };
+    function setupMic() {
+        if (idx >= mesures.length) {
+            document.getElementById('label').innerText = "TERMINÉ";
+            return;
+        }
 
-    recognition.onresult = (event) => {
-        const last = event.results.length - 1;
-        const text = event.results[last][0].transcript.toLowerCase();
+        document.getElementById('label').innerText = mesures[idx];
+        const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new Speech();
         
-        // Extraction du nombre
-        const match = text.match(/\d+/);
-        
-        if (match) {
-            const val = match[0];
-            display.innerText = val;
-            results[mesures[idx]] = val;
-            
-            // Feedback visuel rapide
-            display.style.color = "#2ecc71";
-            
-            // Synthèse vocale pour confirmer sans regarder
-            const msg = new SpeechSynthesisUtterance(val);
-            msg.lang = 'fr-FR';
-            window.speechSynthesis.speak(msg);
+        // Config courte (évite la saturation)
+        recognition.lang = 'fr-FR';
+        recognition.continuous = false; 
+        recognition.interimResults = false;
 
-            // Passage à la mesure suivante après 1.5 seconde
-            setTimeout(() => {
-                display.style.color = "white";
-                if (idx < mesures.length - 1) {
+        recognition.onstart = () => {
+            document.getElementById('led').classList.add('active');
+            isLocked = false;
+        };
+
+        recognition.onresult = (event) => {
+            const text = event.results[0][0].transcript;
+            const val = text.replace(/[^0-9]/g, "");
+            
+            if (val && !isLocked) {
+                isLocked = true;
+                document.getElementById('display').innerText = val;
+                
+                // 1. On confirme à la voix
+                const speak = new SpeechSynthesisUtterance(val);
+                speak.lang = 'fr-FR';
+                window.speechSynthesis.speak(speak);
+
+                // 2. On attend la fin de la voix avant de relancer
+                speak.onend = () => {
                     idx++;
-                    label.innerText = mesures[idx];
-                    display.innerText = "--";
-                } else {
-                    label.innerText = "FINI !";
-                    state.innerText = "Toutes les mesures sont prises.";
+                    // ON COUPE TOUT ET ON RELANCE À NEUF
                     recognition.stop();
-                }
-            }, 1500);
-        }
-    };
+                };
+            }
+        };
 
-    recognition.onerror = (event) => {
-        console.log("Erreur : " + event.error);
-        if (event.error === 'no-speech') {
-            // Relance silencieuse si aucun son détecté
-            try { recognition.stop(); } catch(e){}
-        }
-    };
+        recognition.onerror = () => { 
+            recognition.stop(); 
+        };
 
-    recognition.onend = () => {
-        // LA CLÉ : Si le micro se coupe tout seul, on le relance immédiatement
-        // Cela évite les bips de fin de session
-        led.classList.remove('recording');
-        state.innerText = "Reconnexion...";
-        setTimeout(() => {
-            if (label.innerText !== "FINI !") recognition.start();
-        }, 100);
-    };
+        recognition.onend = () => {
+            document.getElementById('led').classList.remove('active');
+            // La "magie" est ici : on repart sur une session toute neuve
+            if (idx < mesures.length) {
+                setTimeout(setupMic, 300); 
+            }
+        };
 
+        recognition.start();
+    }
 </script>
 </body>
 </html>
