@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atelier Wil - Expert</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --accent: #d4af37; --dark: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --red: #ff4444; --green: #2ecc71; }
+        body { font-family: sans-serif; background: var(--dark); color: var(--text); margin: 0; padding: 0; box-sizing: border-box; }
+        .page { display: none; min-height: 100vh; padding: 20px; flex-direction: column; }
+        .active { display: flex; }
+        .logo { color: var(--accent); font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 40px; letter-spacing: 5px; margin-top: 50px; }
+        .btn { width: 100%; max-width: 400px; padding: 18px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 14px; margin: 8px auto; display: block; }
+        .btn-gold { background: var(--accent); color: black; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #888; }
+        .btn-mic { background: #333; color: white; border: 2px solid #444; }
+        .btn-mic.active-mic { border-color: var(--green); color: var(--green); box-shadow: 0 0 10px var(--green); }
+        input, textarea { width: 100%; padding: 15px; background: #222; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 12px; box-sizing: border-box; font-size: 16px; }
+        .m-card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; transition: 0.3s; }
+        .m-card.active-voice { border: 2px solid var(--green); background: rgba(46, 204, 113, 0.1); }
+        .m-input { font-size: 24px; text-align: center; color: var(--accent); border: 2px solid var(--accent); margin-bottom: 0; font-weight: bold; }
+        .v-status { text-align: center; color: var(--accent); font-weight: bold; height: 25px; margin-bottom: 10px; font-size: 14px; }
+        .editor-container { position: relative; width: 100%; max-width: 400px; margin: 15px auto; background: #000; overflow: hidden; touch-action: none; border-radius: 10px; }
+        #img-editor { width: 100%; display: block; }
+        .drag-line { position: absolute; left: 0; width: 100%; height: 2px; background: red; z-index: 10; }
+        .drag-line::after { content: attr(data-label); font-size: 10px; background: red; color: white; padding: 2px; position: absolute; right: 0; top: -15px; }
+    </style>
+</head>
+<body>
+
+    <div id="p1" class="page active">
+        <div class="logo">ATELIER WIL</div>
+        <button onclick="allerA(2)" class="btn btn-gold">NOUVELLE PRISE DE MESURES</button>
+    </div>
+
+    <div id="p2" class="page">
+        <h2 style="color:var(--accent)">CLIENT</h2>
+        <input type="text" id="prenom" placeholder="PRÉNOM" oninput="save()">
+        <input type="text" id="nom" placeholder="NOM" oninput="save()">
+        <input type="tel" id="tel" placeholder="TÉLÉPHONE" oninput="save()">
+        <input type="number" id="stature" placeholder="STATURE (cm)" oninput="save()">
+        <button onclick="allerA(4)" class="btn btn-gold">CONTINUER</button>
+        <button onclick="allerA(1)" class="btn btn-outline">RETOUR</button>
+    </div>
+
+    <div id="p4" class="page">
+        <h2 id="m-titre">Mesures</h2>
+        <button id="btn-vocal" class="btn btn-mic" onclick="toggleVoice()">🎤 ACTIVER LE MICRO</button>
+        <div id="v-status" class="v-status">Prêt pour l'écoute</div>
+        <div id="m-target"></div>
+        <div style="display:flex; gap:10px; max-width:400px; margin:20px auto; width:100%">
+            <button class="btn btn-outline" onclick="prevG()">PRÉCÉDENT</button>
+            <button class="btn btn-gold" onclick="nextG()">SUIVANT</button>
+        </div>
+    </div>
+
+    <div id="p5" class="page">
+        <h2 style="color:var(--accent)">ANALYSE VISUELLE</h2>
+        <textarea id="notes" placeholder="Notes sur la posture (épaules, cambrure...)" rows="3" oninput="save()"></textarea>
+        <label style="display:block; margin:10px 0; font-size:12px; color:#888;">PHOTO DE FACE :</label>
+        <input type="file" accept="image/*" capture="camera" onchange="loadImg(this)">
+        <div class="editor-container" id="editor-wrap" style="display:none;">
+            <img id="img-editor">
+            <div class="drag-line" id="l1" data-label="POITRINE" style="top:30%"></div>
+            <div class="drag-line" id="l2" data-label="TAILLE" style="top:50%"></div>
+            <div class="drag-line" id="l3" data-label="BASSIN" style="top:70%"></div>
+        </div>
+        <button onclick="allerA(6)" class="btn btn-gold" style="margin-top:20px">RÉCAPITULATIF</button>
+        <button onclick="allerA(4)" class="btn btn-outline">RETOUR MESURES</button>
+    </div>
+
+    <div id="p6" class="page">
+        <h2 style="color:var(--accent)">FINALISATION</h2>
+        <div id="recap-box" style="background:#1a1a1a; padding:15px; border-radius:10px; margin-bottom:20px; font-size:14px; line-height:1.6; border:1px solid #333;"></div>
+        <button class="btn btn-gold" onclick="makePDF()">GÉNÉRER LE PDF EXPERT</button>
+        <button onclick="allerA(5)" class="btn btn-outline">RETOUR PHOTO</button>
+        <button class="btn btn-outline" style="color:red; border-color:red; margin-top:40px" onclick="reset()">EFFACER TOUT</button>
+    </div>
+
+<script>
+    const mesures = ["Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", "Long. devant (7e cerv.)", "Long. devant carrure", "Long. devant poitrine", "Long. devant taille", "Long. devant bassin", "Long. devant hanches", "Carrure devant", "Écart seins", "Dist. pointe seins-épaule", "Longueur épaule", "Encolure devant", "Encolure totale", "Carrure dos", "Long. carrure dos", "Long. poitrine dos", "Long. taille dos", "Long. hanches dos", "Long. bassin dos", "Long. taille sol Dev", "Long. taille sol Dos", "Long. taille sol côté", "Longueur vêtement", "Longueur bras", "Long. bras-coude", "Tour bras", "Tour avant-bras", "Tour poignet"];
+    
+    let dataStore = JSON.parse(localStorage.getItem('atelierData')) || {};
+    let currentG = 0; // Groupe de 3 mesures
+    let voiceIndex = 0;
+    let isVoiceActive = false;
+    let recognition;
+    const synth = window.speechSynthesis;
+
+    function allerA(num) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('p' + num).classList.add('active');
+        window.scrollTo(0,0);
+        if(num === 4) renderM();
+        if(num === 6) showRecap();
+    }
+
+    function renderM() {
+        const target = document.getElementById('m-target');
+        const start = currentG * 3;
+        let html = '';
+        for(let i=start; i<start+3 && i<mesures.length; i++) {
+            const isV = (isVoiceActive && i === voiceIndex) ? 'active-voice' : '';
+            html += `<div class="m-card ${isV}">
+                <label style="font-size:12px; color:#888; text-transform:uppercase">${mesures[i]}</label>
+                <input type="number" class="m-input" value="${dataStore[i] || ''}" oninput="dataStore[${i}]=this.value; save()">
+            </div>`;
+        }
+        target.innerHTML = html;
+        document.getElementById('m-titre').innerText = `Mesures (${currentG + 1}/${Math.ceil(mesures.length/3)})`;
+    }
+
+    function nextG() { if(currentG < Math.ceil(mesures.length/3)-1) { currentG++; renderM(); } else { allerA(5); } }
+    function prevG() { if(currentG > 0) { currentG--; renderM(); } }
+
+    // --- LOGIQUE VOCALE ---
+    function toggleVoice() {
+        if(!isVoiceActive) {
+            isVoiceActive = true;
+            document.getElementById('btn-vocal').classList.add('active-mic');
+            document.getElementById('btn-vocal').innerText = "🔴 ÉCOUTE ACTIVE";
+            voiceIndex = currentG * 3;
+            speak("Prêt pour " + mesures[voiceIndex]);
+            startRec();
+        } else {
+            stopVoice();
+        }
+    }
+
+    function stopVoice() {
+        isVoiceActive = false;
+        document.getElementById('btn-vocal').classList.remove('active-mic');
+        document.getElementById('btn-vocal').innerText = "🎤 ACTIVER LE MICRO";
+        if(recognition) recognition.stop();
+    }
+
+    function startRec() {
+        const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!Speech) return alert("Micro non supporté sur ce navigateur.");
+        
+        recognition = new Speech();
+        recognition.lang = 'fr-FR';
+        recognition.continuous = false;
+
+        recognition.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            const val = transcript.replace(/[^0-9]/g, "");
+            if(val) {
+                dataStore[voiceIndex] = val;
+                save();
+                renderM();
+                speak(val + " enregistré.");
+                
+                setTimeout(() => {
+                    voiceIndex++;
+                    if(voiceIndex < mesures.length) {
+                        if(voiceIndex % 3 === 0) { currentG++; }
+                        renderM();
+                        speak("Suivant : " + mesures[voiceIndex]);
+                    } else {
+                        speak("Toutes les mesures sont terminées.");
+                        stopVoice();
+                    }
+                }, 1500);
+            }
+        };
+
+        recognition.onend = () => { if(isVoiceActive) recognition.start(); };
+        recognition.onerror = (e) => { if(e.error === 'not-allowed') alert("Activez le micro via le cadenas 🔒"); };
+        recognition.start();
+    }
+
+    function speak(t) { synth.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; synth.speak(u); }
+
+    // --- IMAGE & LIGNES ---
+    function loadImg(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('img-editor').src = e.target.result;
+            document.getElementById('editor-wrap').style.display = 'block';
+            initLines();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    function initLines() {
+        const move = (e) => {
+            e.preventDefault();
+            const rect = document.getElementById('editor-wrap').getBoundingClientRect();
+            const touchY = (e.touches ? e.touches[0].clientY : e.clientY);
+            const y = touchY - rect.top;
+            let percent = (y / rect.height) * 100;
+            if(percent >= 0 && percent <= 100) e.target.style.top = percent + '%';
+        };
+        document.querySelectorAll('.drag-line').forEach(l => {
+            l.ontouchmove = move;
+            l.onmousedown = (ev) => { document.onmousemove = move; document.onmouseup = () => document.onmousemove = null; };
+        });
+    }
+
+    // --- DATA ---
+    function save() {
+        const client = {
+            p: document.getElementById('prenom').value,
+            n: document.getElementById('nom').value,
+            t: document.getElementById('tel').value,
+            s: document.getElementById('stature').value,
+            notes: document.getElementById('notes').value,
+            mesures: dataStore
+        };
+        localStorage.setItem('atelierData', JSON.stringify(client));
+    }
+
+    function showRecap() {
+        const d = JSON.parse(localStorage.getItem('atelierData'));
+        let h = `<b>CLIENT :</b> ${d.p} ${d.n}<br><b>STATURE :</b> ${d.s} cm<br><hr>`;
+        let count = 0;
+        mesures.forEach((m, i) => { if(dataStore[i]) count++; });
+        h += `<b>MESURES :</b> ${count} / ${mesures.length} saisies.`;
+        document.getElementById('recap-box').innerHTML = h;
+    }
+
+    function makePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFont("helvetica", "bold");
+        doc.text("ATELIER WIL - FICHE EXPERT", 10, 20);
+        doc.setFontSize(10);
+        doc.text(`Client: ${document.getElementById('prenom').value} ${document.getElementById('nom').value}`, 10, 30);
+        doc.text(`Stature: ${document.getElementById('stature').value} cm`, 10, 35);
+        
+        doc.setFont("helvetica", "normal");
+        mesures.forEach((m, i) => {
+            let y = 50 + (i * 7);
+            let x = 10;
+            if(i > 15) { x = 110; y = 50 + ((i-16) * 7); }
+            doc.text(`${m}: ${dataStore[i] || '--'} cm`, x, y);
+        });
+        
+        doc.save(`Fiche_${document.getElementById('nom').value}.pdf`);
+    }
+
+    function reset() { if(confirm("Voulez-vous supprimer toutes les données ?")) { localStorage.clear(); location.reload(); } }
+
+    // Charger les infos client au démarrage
+    window.onload = () => {
+        const d = JSON.parse(localStorage.getItem('atelierData'));
+        if(d) {
+            document.getElementById('prenom').value = d.p || '';
+            document.getElementById('nom').value = d.n || '';
+            document.getElementById('tel').value = d.t || '';
+            document.getElementById('stature').value = d.s || '';
+            document.getElementById('notes').value = d.notes || '';
+        }
+    };
+</script>
+</body>
+</html>
