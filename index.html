@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atelier Wil - Expert</title>
+    <title>Atelier Wil - Ultra Stable</title>
     <style>
-        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; }
-        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; }
+        :root { --accent: #d4af37; --dark: #050505; --green: #2ecc71; --red: #e74c3c; }
+        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; overflow: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .mesure-nom { font-size: 32px; color: var(--accent); text-transform: uppercase; }
-        .valeur { font-size: 140px; font-weight: bold; margin: 20px 0; }
-        .indicator { width: 15px; height: 15px; border-radius: 50%; display: inline-block; background: #444; margin-right: 10px; }
-        .active { background: var(--green); box-shadow: 0 0 15px var(--green); }
-        .btn-start { padding: 20px 40px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer; }
+        .mesure-nom { font-size: 32px; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; }
+        .valeur { font-size: 150px; font-weight: bold; margin: 10px 0; transition: all 0.3s; }
+        .indicator { width: 25px; height: 25px; border-radius: 50%; display: inline-block; background: var(--red); margin-top: 20px; border: 3px solid #222; }
+        .active { background: var(--green); box-shadow: 0 0 20px var(--green); }
+        .status-text { margin-top: 10px; font-weight: bold; font-size: 14px; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -20,80 +20,83 @@
 <div class="container" id="main-ui" style="display:none;">
     <div id="label" class="mesure-nom">Chargement...</div>
     <div id="display" class="valeur">--</div>
-    <div>
-        <span id="led" class="indicator"></span>
-        <span id="state">ÉCOUTE...</span>
-    </div>
+    <div id="led" class="indicator"></div>
+    <div id="status" class="status-text">PATIENTEZ...</div>
 </div>
 
 <div class="container" id="start-screen">
     <h1 style="color:var(--accent); letter-spacing:5px;">ATELIER WIL</h1>
-    <button class="btn-start" onclick="init()">DÉMARRER LE MAINS LIBRES</button>
+    <button style="padding: 25px 50px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 20px;" onclick="init()">LANCER L'ASSISTANT</button>
 </div>
 
 <script>
     const mesures = ["Poitrine", "Taille", "Hanches", "Bassin", "Long. Devant", "Carrure Devant", "Encolure", "Carrure Dos", "Long. Dos", "Bras", "Poignet"];
     let idx = 0;
     let recognition;
-    let isLocked = false;
+    let isSpeaking = false;
 
     function init() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('main-ui').style.display = 'flex';
-        setupMic();
+        // On attend 1s pour être sûr que le premier clic n'interfère pas
+        setTimeout(lancerSession, 1000);
     }
 
-    function setupMic() {
+    function lancerSession() {
         if (idx >= mesures.length) {
-            document.getElementById('label').innerText = "TERMINÉ";
+            document.getElementById('label').innerText = "FIN DES MESURES";
+            document.getElementById('status').innerText = "TERMINE";
             return;
         }
 
         document.getElementById('label').innerText = mesures[idx];
+        document.getElementById('display').innerText = "--";
+        document.getElementById('display').style.color = "white";
+
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new Speech();
-        
-        // Config courte (évite la saturation)
         recognition.lang = 'fr-FR';
-        recognition.continuous = false; 
+        recognition.continuous = false;
         recognition.interimResults = false;
 
         recognition.onstart = () => {
             document.getElementById('led').classList.add('active');
-            isLocked = false;
+            document.getElementById('status').innerText = "DITES LE CHIFFRE";
+            document.getElementById('status').style.color = "#2ecc71";
         };
 
         recognition.onresult = (event) => {
-            const text = event.results[0][0].transcript;
-            const val = text.replace(/[^0-9]/g, "");
+            const val = event.results[0][0].transcript.replace(/[^0-9]/g, "");
             
-            if (val && !isLocked) {
-                isLocked = true;
+            if (val && !isSpeaking) {
+                isSpeaking = true;
                 document.getElementById('display').innerText = val;
+                document.getElementById('display').style.color = "#d4af37";
                 
-                // 1. On confirme à la voix
-                const speak = new SpeechSynthesisUtterance(val);
-                speak.lang = 'fr-FR';
-                window.speechSynthesis.speak(speak);
-
-                // 2. On attend la fin de la voix avant de relancer
-                speak.onend = () => {
+                // Synthèse vocale de confirmation
+                const msg = new SpeechSynthesisUtterance(val);
+                msg.lang = 'fr-FR';
+                msg.onend = () => {
                     idx++;
-                    // ON COUPE TOUT ET ON RELANCE À NEUF
-                    recognition.stop();
+                    isSpeaking = false;
+                    recognition.stop(); // On ferme proprement
                 };
+                window.speechSynthesis.speak(msg);
             }
         };
 
-        recognition.onerror = () => { 
-            recognition.stop(); 
+        recognition.onerror = () => {
+            recognition.stop();
         };
 
         recognition.onend = () => {
             document.getElementById('led').classList.remove('active');
-            // La "magie" est ici : on repart sur une session toute neuve
+            document.getElementById('status').innerText = "PAUSE TECHNIQUE...";
+            document.getElementById('status').style.color = "#888";
+            
+            // LA CLÉ : Une pause de 1200ms pour laisser le hardware souffler
             if (idx < mesures.length) {
-                setTimeout(setupMic, 300); 
+                setTimeout(lancerSession, 1200);
             }
         };
 
