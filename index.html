@@ -1,35 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atelier Wil - Flux Rapide</title>
-    <style>
-        :root { --accent: #d4af37; --dark: #050505; --green: #2ecc71; }
-        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; overflow: hidden; }
-        .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .mesure-nom { font-size: 26px; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; }
-        .valeur { font-size: 120px; font-weight: bold; margin: 10px 0; color: white; }
-        .status { font-size: 18px; color: #666; letter-spacing: 1px; }
-        .led { width: 12px; height: 12px; border-radius: 50%; background: #333; margin-bottom: 10px; }
-        .led.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
-    </style>
-</head>
-<body>
-
-<div class="container" id="ui" style="display:none;">
-    <div id="progress" style="font-size: 14px; opacity: 0.5;">1 / 31</div>
-    <div class="led" id="led"></div>
-    <div id="label" class="mesure-nom">Prêt</div>
-    <div id="display" class="valeur">--</div>
-    <div id="status" class="status">EN ATTENTE</div>
-</div>
-
-<div class="container" id="start-screen">
-    <h1 style="color:var(--accent); letter-spacing:4px;">ATELIER WIL</h1>
-    <button style="padding: 20px 40px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer;" onclick="demarrer()">DÉMARRER</button>
-</div>
-
 <script>
     const mesures = [
         "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", "Hauteur poitrine", 
@@ -45,24 +13,42 @@
     let attendConfirm = false;
     let tempVal = "";
 
+    // FONCTION DE VOIX AVEC DÉVERROUILLAGE
     function parler(t, cb) {
-        const s = window.speechSynthesis;
+        window.speechSynthesis.cancel(); // Stoppe toute voix en cours
         const u = new SpeechSynthesisUtterance(t);
         u.lang = 'fr-FR';
-        u.rate = 1.1; // Légèrement plus rapide
+        u.rate = 1.1;
         if (cb) u.onend = cb;
-        s.speak(u);
+        window.speechSynthesis.speak(u);
     }
 
     function demarrer() {
+        console.log("Tentative de démarrage...");
+        
+        // 1. Débloquer la synthèse vocale (obligatoire sur Android)
+        parler(""); 
+
+        // 2. Basculer l'interface
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('ui').style.display = 'flex';
-        initSpeech();
-        annoncer();
+        
+        // 3. Initialiser le micro
+        try {
+            initSpeech();
+            setTimeout(annoncer, 500);
+        } catch (e) {
+            alert("Erreur micro : " + e.message);
+        }
     }
 
     function initSpeech() {
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Speech) {
+            alert("Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome.");
+            return;
+        }
+        
         recognition = new Speech();
         recognition.lang = 'fr-FR';
         recognition.continuous = true;
@@ -70,7 +56,6 @@
 
         recognition.onresult = (e) => {
             const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
-            
             if (attendConfirm) {
                 if (text.includes("oui") || text.includes("valide") || text.includes("ok")) {
                     valider(true);
@@ -86,7 +71,21 @@
                 }
             }
         };
-        recognition.onend = () => recognition.start();
+
+        recognition.onstart = () => {
+            document.getElementById('led').className = "led on";
+            console.log("Micro activé");
+        };
+
+        recognition.onerror = (e) => {
+            console.error("Erreur recognition:", e.error);
+            if(e.error === 'not-allowed') alert("Activez l'autorisation Micro dans les paramètres de Chrome");
+        };
+
+        recognition.onend = () => {
+            if (idx < mesures.length) recognition.start();
+        };
+
         recognition.start();
     }
 
@@ -97,7 +96,6 @@
         document.getElementById('display').style.color = "white";
         document.getElementById('status').innerText = "ÉCOUTE...";
         document.getElementById('progress').innerText = `${idx + 1} / 31`;
-        document.getElementById('led').className = "led on";
         parler(mesures[idx]);
     }
 
@@ -106,25 +104,22 @@
         const affichage = v.replace('.', ',');
         document.getElementById('display').innerText = affichage;
         document.getElementById('status').innerText = "VALIDER ?";
-        document.getElementById('led').className = "led";
         parler(affichage + ". Valider ?");
     }
 
     function valider(ok) {
         if (ok) {
-            document.getElementById('display').style.color = var(--green);
+            document.getElementById('display').style.color = "#2ecc71";
             idx++;
             if (idx < mesures.length) {
-                setTimeout(annoncer, 500);
+                setTimeout(annoncer, 400);
             } else {
                 document.getElementById('label').innerText = "FINI";
-                parler("Toutes les mesures sont prises.");
+                parler("Terminé.");
             }
         } else {
             document.getElementById('display').style.color = "#ff4444";
-            setTimeout(annoncer, 500);
+            setTimeout(annoncer, 400);
         }
     }
 </script>
-</body>
-</html>
