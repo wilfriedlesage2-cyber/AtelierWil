@@ -3,82 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atelier Wil - Système Prise de Mesures</title>
+    <title>Atelier Wil - Test Complet</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; --grey: #333; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; overflow: hidden; }
-        
-        /* Structure des étapes */
+        :root { --accent: #d4af37; --dark: #0a0a0a; --green: #2ecc71; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; margin: 0; text-align: center; overflow: hidden; }
         .step { display: none; min-height: 100vh; padding: 20px; box-sizing: border-box; width: 100vw; }
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
-        /* Formulaires */
         input, textarea { width: 90%; max-width: 400px; padding: 18px; margin: 10px; border-radius: 12px; border: 1px solid #444; background: #1a1a1a; color: white; font-size: 18px; }
-        .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
-        .btn:active { transform: scale(0.98); }
-
-        /* Affichage Mesures */
-        .valeur { font-size: 120px; font-weight: bold; color: var(--accent); margin: 20px 0; text-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
-        .status-pill { padding: 12px 25px; border-radius: 30px; background: #222; font-size: 16px; margin-top: 15px; border: 1px solid #444; transition: 0.3s; }
-        .listening { background: var(--green); color: black; border: none; box-shadow: 0 0 20px var(--green); }
-
-        /* Photo & Guides */
-        #photo-container { position: relative; width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); margin: 20px 0; border-radius: 10px; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .guide-line { position: absolute; left: 0; width: 100%; height: 2px; background: var(--accent); cursor: ns-resize; touch-action: none; z-index: 10; }
-        .line-label { position: absolute; left: 5px; font-size: 10px; color: var(--accent); background: rgba(0,0,0,0.5); padding: 2px; pointer-events: none; }
+        .btn { padding: 20px 40px; background: var(--accent); color: black; border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer; margin-top: 20px; }
+        .valeur { font-size: 110px; font-weight: bold; color: var(--accent); margin: 15px 0; }
+        .status-pill { padding: 12px 25px; border-radius: 30px; background: #222; font-size: 16px; margin-top: 15px; border: 1px solid #444; }
+        .listening { background: var(--green); color: black; box-shadow: 0 0 20px var(--green); }
+        video { width: 320px; height: 480px; background: #000; border: 2px solid var(--accent); border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <section id="step1" class="step active">
-        <h1 style="color:var(--accent); letter-spacing: 5px; margin-bottom: 5px;">ATELIER WIL</h1>
-        <p style="opacity: 0.7; margin-bottom: 30px;">Prise de mesures professionnelle</p>
-        <input type="text" id="client-prenom" placeholder="Prénom du client">
-        <input type="text" id="client-nom" placeholder="Nom du client">
-        <input type="tel" id="client-tel" placeholder="Numéro de téléphone">
-        <button class="btn" onclick="validerEtape1()">COMMENCER LA SESSION</button>
+        <h1 style="color:var(--accent)">ATELIER WIL</h1>
+        <input type="text" id="client-prenom" placeholder="Prénom">
+        <input type="text" id="client-nom" placeholder="Nom">
+        <input type="tel" id="client-tel" placeholder="Téléphone">
+        <input type="number" id="client-stature" placeholder="Stature (cm)">
+        <button class="btn" onclick="nextStep(2)">LANCER LES MESURES</button>
     </section>
 
     <section id="step2" class="step">
-        <div id="progress" style="font-weight: bold; color: var(--accent);">1 / 31</div>
-        <h2 id="label" style="height: 80px; font-size: 28px; margin: 20px 0;">--</h2>
+        <div id="progress" style="color: var(--accent); font-weight: bold;">1 / 30</div>
+        <h2 id="label" style="height: 60px; font-size: 24px;">--</h2>
         <div id="display" class="valeur">--</div>
-        <div id="status" class="status-pill">MICRO EN ATTENTE</div>
-        <button id="btn-vocal" class="btn" onclick="initVocal()">ACTIVER LE MICRO</button>
+        <div id="status" class="status-pill">MICRO DÉSACTIVÉ</div>
+        <button id="btn-vocal" class="btn" onclick="demarrerSession()">ACTIVER LE MICRO</button>
     </section>
 
     <section id="step3" class="step">
         <h2 style="color:var(--accent)">OBSERVATIONS</h2>
-        <p>Précisez les particularités du client :</p>
-        <textarea id="client-notes" rows="8" placeholder="Ex: Épaule droite plus basse, cambrure prononcée, aisance souhaitée..."></textarea>
-        <button class="btn" onclick="nextStep(4)">PASSER AUX PHOTOS</button>
+        <textarea id="client-notes" rows="8" placeholder="Notes morphologiques..."></textarea>
+        <button class="btn" onclick="nextStep(4)">PHOTOS</button>
     </section>
 
     <section id="step4" class="step">
         <h2 id="photo-title" style="color:var(--accent)">VUE DE FACE</h2>
-        <div id="photo-container">
-            <video id="video" autoplay playsinline></video>
-            <div class="guide-line" style="top: 20%" onpointermove="dragLine(event)"><span class="line-label">ÉPAULES</span></div>
-            <div class="guide-line" style="top: 45%" onpointermove="dragLine(event)"><span class="line-label">TAILLE</span></div>
-            <div class="guide-line" style="top: 70%" onpointermove="dragLine(event)"><span class="line-label">BASSIN</span></div>
-        </div>
-        <p style="font-size: 12px; opacity: 0.6;">Faites glisser les lignes dorées sur les articulations</p>
-        <button class="btn" onclick="capturePhoto()">CAPTURER LA VUE</button>
+        <video id="video" autoplay playsinline></video>
+        <button class="btn" onclick="prochainePhoto()">CAPTURER</button>
     </section>
 
     <section id="step5" class="step">
-        <h2 style="color:var(--accent)">DOSSIER PRÊT</h2>
-        <p>Toutes les données ont été enregistrées avec succès.</p>
-        <button class="btn" onclick="genererPDF()">GÉNÉRER LE PDF FINAL</button>
-        <button class="btn" style="background:#222; color:white; margin-top:15px;" onclick="location.reload()">NOUVELLE FICHE</button>
+        <h2 style="color:var(--accent)">DOSSIER COMPLET</h2>
+        <button class="btn" onclick="genererPDF()">TÉLÉCHARGER LE PDF</button>
     </section>
 
 <script>
-    // LISTE OFFICIELLE VALIDÉE
+    // Liste EXACTE (sans la Stature qui est en étape 1)
     const mesuresNoms = [
-        "Stature", "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", 
+        "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", 
         "Hauteur de poitrine", "Longueur devant", "Largeur devant", "Écartement de poitrine", 
         "Encolure", "Longueur d'épaule", "Tour de bras", "Tour de coude", "Tour de poignet", 
         "Longueur de bras au coude", "Longueur de bras total", "Largeur dos", "Longueur dos", 
@@ -89,180 +68,110 @@
 
     let valeursMesures = [];
     let currentIdx = 0;
-    let recognition;
+    let recognition = null;
     let attendConfirm = false;
     let tempVal = "";
-    let isVocalActive = false;
-    let currentPhotoIdx = 0;
-    const photoViews = ["FACE", "PROFIL", "DOS"];
+    let sessionActive = false;
 
     function nextStep(n) {
-        isVocalActive = false;
-        if(recognition) { recognition.onend = null; recognition.stop(); }
+        sessionActive = false;
+        if(recognition) { try { recognition.stop(); } catch(e) {} }
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
-        if(n === 4) startCamera();
+        if(n === 4) { navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => document.getElementById('video').srcObject = s); }
     }
 
-    function validerEtape1() {
-        const prenom = document.getElementById('client-prenom').value;
-        const tel = document.getElementById('client-tel').value;
-        if (!prenom || !tel) { alert("Veuillez remplir au moins le Prénom et le Téléphone."); return; }
-        nextStep(2);
-    }
-
-    // GESTION VOCALE AVANCÉE
-    function parler(t) {
+    function parler(texte, rappel) {
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(t);
+        const u = new SpeechSynthesisUtterance(texte);
         u.lang = 'fr-FR';
-        u.rate = 1.0;
-        u.onend = () => { if(isVocalActive) restartRecognition(); };
+        u.onend = () => { if(rappel && sessionActive) rappel(); };
         window.speechSynthesis.speak(u);
     }
 
-    function restartRecognition() {
-        if(!isVocalActive) return;
-        try { recognition.start(); } catch(e) {}
+    function demarrerSession() {
+        sessionActive = true;
+        document.getElementById('btn-vocal').style.display = 'none';
+        annoncerMesure();
     }
 
-    function setupRecognition() {
+    function ecouter() {
+        if(!sessionActive) return;
+        
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(recognition) { recognition.onend = null; recognition.stop(); }
+        if(recognition) { recognition.onresult = null; recognition.onend = null; try { recognition.stop(); } catch(e) {} }
         
         recognition = new Speech();
         recognition.lang = 'fr-FR';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
+        
         recognition.onstart = () => {
             document.getElementById('status').innerText = "À L'ÉCOUTE...";
             document.getElementById('status').classList.add('listening');
         };
 
+        recognition.onresult = (e) => {
+            const vocal = e.results[0][0].transcript.toLowerCase();
+            if(attendConfirm) {
+                if(vocal.includes("oui") || vocal.includes("ok") || vocal.includes("valide")) {
+                    valeursMesures.push(tempVal);
+                    currentIdx++;
+                    if(currentIdx < mesuresNoms.length) annoncerMesure(); else nextStep(3);
+                } else { annoncerMesure(); }
+            } else {
+                let nb = vocal.replace(/[^0-9,.]/g, '').replace(',', '.');
+                if(nb) {
+                    tempVal = nb;
+                    attendConfirm = true;
+                    document.getElementById('display').innerText = nb;
+                    parler(nb + ". Valider ?", () => { ecouter(); });
+                } else { ecouter(); }
+            }
+        };
+
         recognition.onend = () => {
             document.getElementById('status').innerText = "MICRO EN PAUSE";
             document.getElementById('status').classList.remove('listening');
-            if(isVocalActive && !window.speechSynthesis.speaking) {
-                setTimeout(restartRecognition, 500);
-            }
         };
 
-        recognition.onresult = (e) => {
-            const transcript = e.results[0][0].transcript.toLowerCase();
-            console.log("Reçu:", transcript);
-
-            if (attendConfirm) {
-                if (transcript.includes("oui") || transcript.includes("ok") || transcript.includes("valide")) {
-                    valeursMesures.push(tempVal);
-                    currentIdx++;
-                    // SÉCURITÉ ANTI-BUG 8ème MESURE : REBOOT TOUTES LES 5
-                    if (currentIdx % 5 === 0) {
-                        setupRecognition();
-                        setTimeout(annoncer, 600);
-                    } else if (currentIdx < mesuresNoms.length) {
-                        annoncer();
-                    } else {
-                        nextStep(3);
-                    }
-                } else if (transcript.includes("non") || transcript.includes("pas") || transcript.includes("recommence")) {
-                    annoncer();
-                }
-            } else {
-                let cleanNum = transcript.replace(/[^0-9,.]/g, '').replace(',', '.');
-                let found = cleanNum.match(/\d+(\.\d+)?/);
-                if (found) {
-                    tempVal = found[0];
-                    attendConfirm = true;
-                    document.getElementById('display').innerText = tempVal.replace('.', ',');
-                    parler(tempVal.replace('.', ',') + ". Valider ?");
-                }
-            }
-        };
+        recognition.start();
     }
 
-    function initVocal() {
-        isVocalActive = true;
-        document.getElementById('btn-vocal').style.display = 'none';
-        setupRecognition();
-        annoncer();
-    }
-
-    function annoncer() {
+    function annoncerMesure() {
         attendConfirm = false;
         document.getElementById('label').innerText = mesuresNoms[currentIdx];
         document.getElementById('display').innerText = "--";
-        document.getElementById('progress').innerText = `${currentIdx + 1} / 31`;
-        parler(mesuresNoms[currentIdx]);
+        document.getElementById('progress').innerText = `${currentIdx + 1} / 30`;
+        parler(mesuresNoms[currentIdx], () => { ecouter(); });
     }
 
-    // MODULE PHOTO
-    function dragLine(e) {
-        if(e.buttons !== 1 && e.type !== 'pointermove') return;
-        let rect = document.getElementById('photo-container').getBoundingClientRect();
-        let y = ((e.clientY - rect.top) / rect.height) * 100;
-        if(y >= 0 && y <= 100) e.target.style.top = y + "%";
+    let photoCount = 0;
+    function prochainePhoto() {
+        photoCount++;
+        const titres = ["FACE", "PROFIL", "DOS"];
+        if(photoCount < 3) {
+            document.getElementById('photo-title').innerText = "VUE DE " + titres[photoCount];
+        } else { nextStep(5); }
     }
 
-    function startCamera() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => { document.getElementById('video').srcObject = stream; })
-        .catch(err => alert("Caméra non accessible : " + err));
-    }
-
-    function capturePhoto() {
-        currentPhotoIdx++;
-        if(currentPhotoIdx < photoViews.length) {
-            document.getElementById('photo-title').innerText = "VUE DE " + photoViews[currentPhotoIdx];
-            alert("Photo " + photoViews[currentPhotoIdx-1] + " enregistrée. Tournez le client.");
-        } else {
-            nextStep(5);
-        }
-    }
-
-    // PDF FINAL
     function genererPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const prenom = document.getElementById('client-prenom').value;
-        const nom = document.getElementById('client-nom').value;
-        const tel = document.getElementById('client-tel').value.replace(/\s/g, '');
-        const notes = document.getElementById('client-notes').value;
-
-        // Entête
-        doc.setFontSize(22);
-        doc.setTextColor(212, 175, 55);
-        doc.text("ATELIER WIL", 105, 20, { align: "center" });
+        const p = document.getElementById('client-prenom').value;
+        const n = document.getElementById('client-nom').value;
+        const s = document.getElementById('client-stature').value;
         
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`FICHE CLIENT : ${prenom} ${nom}`, 20, 40);
-        doc.text(`TÉLÉPHONE : ${tel}`, 20, 48);
-        doc.text(`DATE : ${new Date().toLocaleDateString()}`, 20, 56);
-
-        // Notes
+        doc.setFontSize(18);
+        doc.text(`Fiche Client : ${p} ${n}`, 20, 20);
+        doc.text(`Stature : ${s} cm`, 20, 30);
+        
+        let y = 50;
         doc.setFontSize(12);
-        doc.text("OBSERVATIONS MORPHOLOGIQUES :", 20, 70);
-        doc.setFont("helvetica", "italic");
-        const splitNotes = doc.splitTextToSize(notes || "Aucune note particulière.", 170);
-        doc.text(splitNotes, 20, 77);
-        doc.setFont("helvetica", "normal");
-
-        // Tableau de mesures
-        let y = 110;
-        doc.setFontSize(14);
-        doc.text("MESURES PRISES (CM) :", 20, y);
-        y += 10;
-        doc.setFontSize(10);
-
         mesuresNoms.forEach((m, i) => {
-            doc.text(`${m} :`, 20, y);
-            doc.text(`${valeursMesures[i] || '--'}`, 100, y);
-            y += 6;
+            doc.text(`${m} : ${valeursMesures[i] || '--'} cm`, 20, y);
+            y += 7;
             if(y > 280) { doc.addPage(); y = 20; }
         });
-
-        doc.save(`${prenom}_${tel}.pdf`);
+        doc.save(`${p}_${n}.pdf`);
     }
 </script>
 </body>
