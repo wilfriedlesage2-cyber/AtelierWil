@@ -3,106 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atelier Wil - Flux Continu</title>
+    <title>Atelier Wil - Flux Rapide</title>
     <style>
         :root { --accent: #d4af37; --dark: #050505; --green: #2ecc71; }
-        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; }
+        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; overflow: hidden; }
         .container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .mesure-nom { font-size: 30px; color: var(--accent); }
-        .valeur { font-size: 130px; font-weight: bold; margin: 10px 0; color: white; }
-        .led { width: 20px; height: 20px; border-radius: 50%; background: #333; margin-bottom: 10px; }
-        .led.on { background: var(--green); box-shadow: 0 0 15px var(--green); }
-        .log { font-size: 14px; color: #666; height: 20px; }
+        .mesure-nom { font-size: 26px; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; }
+        .valeur { font-size: 120px; font-weight: bold; margin: 10px 0; color: white; }
+        .status { font-size: 18px; color: #666; letter-spacing: 1px; }
+        .led { width: 12px; height: 12px; border-radius: 50%; background: #333; margin-bottom: 10px; }
+        .led.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
     </style>
 </head>
 <body>
 
 <div class="container" id="ui" style="display:none;">
+    <div id="progress" style="font-size: 14px; opacity: 0.5;">1 / 31</div>
     <div class="led" id="led"></div>
     <div id="label" class="mesure-nom">Prêt</div>
     <div id="display" class="valeur">--</div>
-    <div id="log" class="log">Dites un chiffre...</div>
+    <div id="status" class="status">EN ATTENTE</div>
 </div>
 
 <div class="container" id="start-screen">
-    <h1 style="color:var(--accent);">ATELIER WIL</h1>
-    <button style="padding: 20px 40px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold;" onclick="demarrer()">LANCER LE MODE CONTINU</button>
+    <h1 style="color:var(--accent); letter-spacing:4px;">ATELIER WIL</h1>
+    <button style="padding: 20px 40px; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; font-size: 18px; cursor: pointer;" onclick="demarrer()">DÉMARRER</button>
 </div>
 
 <script>
-    const mesures = ["Poitrine", "Taille", "Hanches", "Bassin", "Long. Devant", "Carrure Devant", "Encolure", "Carrure Dos", "Long. Dos", "Bras", "Poignet"];
+    const mesures = [
+        "Tour de poitrine", "Tour de taille", "Tour de hanches", "Tour de bassin", "Hauteur poitrine", 
+        "Longueur devant", "Largeur devant", "Ecartement poitrine", "Encolure", "Longueur épaule",
+        "Tour de bras", "Tour de coude", "Tour de poignet", "Longueur bras au coude", "Longueur bras total",
+        "Largeur dos", "Longueur dos", "Hauteur sous bras", "Hauteur taille-hanches", "Hauteur taille-bassin",
+        "Tour de cuisse", "Tour de genou", "Tour de mollet", "Tour de cheville", "Hauteur taille-genou",
+        "Hauteur taille-sol", "Hauteur entrejambe-sol", "Montante", "Tour de tête", "Tour de main", "Stature totale"
+    ];
+
     let idx = 0;
     let recognition;
-    let derniereValeur = "";
+    let attendConfirm = false;
+    let tempVal = "";
+
+    function parler(t, cb) {
+        const s = window.speechSynthesis;
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'fr-FR';
+        u.rate = 1.1; // Légèrement plus rapide
+        if (cb) u.onend = cb;
+        s.speak(u);
+    }
 
     function demarrer() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('ui').style.display = 'flex';
-        
+        initSpeech();
+        annoncer();
+    }
+
+    function initSpeech() {
         const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new Speech();
-        
-        // --- LA CONFIGURATION "ZÉRO COUPURE" ---
         recognition.lang = 'fr-FR';
-        recognition.continuous = true; 
-        recognition.interimResults = true; // On veut voir ce qu'il comprend en direct
+        recognition.continuous = true;
+        recognition.interimResults = false;
 
-        recognition.onstart = () => { document.getElementById('led').classList.add('on'); };
-        
-        recognition.onresult = (event) => {
-            let texte = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                texte += event.results[i][0].transcript;
-            }
-
-            // On cherche un nombre dans tout ce qui a été dit
-            const match = texte.match(/\d+/g);
-            if (match) {
-                const nombre = match[match.length - 1]; // On prend le dernier chiffre entendu
-                
-                if (nombre !== derniereValeur) {
-                    derniereValeur = nombre;
-                    validerMesure(nombre);
+        recognition.onresult = (e) => {
+            const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
+            
+            if (attendConfirm) {
+                if (text.includes("oui") || text.includes("valide") || text.includes("ok")) {
+                    valider(true);
+                } else if (text.includes("non") || text.includes("recommence") || text.includes("erreur")) {
+                    valider(false);
+                }
+            } else {
+                let num = text.replace(/[^0-9,.]/g, '').replace(',', '.');
+                const match = num.match(/\d+(\.\d+)?/);
+                if (match) {
+                    tempVal = match[0];
+                    demanderConfirmation(tempVal);
                 }
             }
-            document.getElementById('log').innerText = "Entendu : " + texte;
         };
-
-        // Si le micro s'arrête (bug système), on le relance sans bip
-        recognition.onend = () => {
-            console.log("Relance forcée...");
-            recognition.start();
-        };
-
+        recognition.onend = () => recognition.start();
         recognition.start();
-        majAffichage();
     }
 
-    function validerMesure(v) {
-        document.getElementById('display').innerText = v;
-        document.getElementById('display').style.color = "#2ecc71";
+    function annoncer() {
+        attendConfirm = false;
+        document.getElementById('label').innerText = mesures[idx];
+        document.getElementById('display').innerText = "--";
+        document.getElementById('display').style.color = "white";
+        document.getElementById('status').innerText = "ÉCOUTE...";
+        document.getElementById('progress').innerText = `${idx + 1} / 31`;
+        document.getElementById('led').className = "led on";
+        parler(mesures[idx]);
+    }
 
-        // Petite voix de confirmation
-        const synth = window.speechSynthesis;
-        const phrase = new SpeechSynthesisUtterance(v);
-        phrase.lang = 'fr-FR';
-        synth.speak(phrase);
+    function demanderConfirmation(v) {
+        attendConfirm = true;
+        const affichage = v.replace('.', ',');
+        document.getElementById('display').innerText = affichage;
+        document.getElementById('status').innerText = "VALIDER ?";
+        document.getElementById('led').className = "led";
+        parler(affichage + ". Valider ?");
+    }
 
-        setTimeout(() => {
+    function valider(ok) {
+        if (ok) {
+            document.getElementById('display').style.color = var(--green);
             idx++;
             if (idx < mesures.length) {
-                majAffichage();
-                document.getElementById('display').innerText = "--";
-                document.getElementById('display').style.color = "white";
+                setTimeout(annoncer, 500);
             } else {
-                document.getElementById('label').innerText = "TERMINÉ";
-                recognition.stop();
+                document.getElementById('label').innerText = "FINI";
+                parler("Toutes les mesures sont prises.");
             }
-        }, 2000); // 2 secondes pour vous laisser le temps de voir
-    }
-
-    function majAffichage() {
-        document.getElementById('label').innerText = mesures[idx];
+        } else {
+            document.getElementById('display').style.color = "#ff4444";
+            setTimeout(annoncer, 500);
+        }
     }
 </script>
 </body>
